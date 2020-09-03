@@ -1,18 +1,17 @@
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include <util/delay.h>
-#include <string.h>
-#include <stdio.h>
-#include "avr_lib/uart.h"
 #include "avr_lib/printf.h"
+#include "avr_lib/uart.h"
+#include <avr/interrupt.h>
+#include <avr/io.h>
+#include <stdio.h>
+#include <string.h>
+#include <util/delay.h>
 
-#define UART_BAUDRATE 9600
+#define UART_BAUDRATE 19200
 
-int main(void)
-{
+int main(void) {
 
     unsigned int c;
-    char tmpRxBuffer[5];
+    char tmpRxBuffer[16];
     uint8_t idxTmpRxBuffer = 0;
 
     //initialize uart library, pass baudrate and AVR cpu clock
@@ -26,14 +25,11 @@ int main(void)
 
     DDRB |= (1 << 4);
 
-    while (1)
-    {
+    while (1) {
         c = uart_getc();
 
-        if (c & UART_NO_DATA)
-        {
-            if (idxTmpRxBuffer != 0)
-            {
+        if (c & UART_NO_DATA) {
+            if (idxTmpRxBuffer != 0) {
                 tmpRxBuffer[idxTmpRxBuffer] = '\0';
                 idxTmpRxBuffer = 0;
 
@@ -43,19 +39,14 @@ int main(void)
                 if (!strcmp(tmpRxBuffer, "off"))
                     PORTB &= ~(1 << PB4);
             }
-        }
-        else
-        {
-            if (c & UART_FRAME_ERROR)
-            {
+        } else {
+            if (c & UART_FRAME_ERROR) {
                 uart_puts_P("UART Frame Error: ");
             }
-            if (c & UART_OVERRUN_ERROR)
-            {
+            if (c & UART_OVERRUN_ERROR) {
                 uart_puts_P("UART Overrun Error: ");
             }
-            if (c & UART_BUFFER_OVERFLOW)
-            {
+            if (c & UART_BUFFER_OVERFLOW) {
                 uart_puts_P("Buffer overflow error: ");
             }
 
