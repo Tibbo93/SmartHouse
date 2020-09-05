@@ -1,3 +1,4 @@
+#include "avr_lib/dht.h"
 #include "avr_lib/printf.h"
 #include "avr_lib/uart.h"
 #include <avr/interrupt.h>
@@ -23,7 +24,7 @@ int main(void) {
     //enable global interrupt flag
     sei();
 
-    DDRB |= (1 << 4);
+    DDRB |= (1 << 4);          //set PB4 as output
 
     while (1) {
         c = uart_getc();
@@ -38,6 +39,19 @@ int main(void) {
 
                 if (!strcmp(tmpRxBuffer, "off"))
                     PORTB &= ~(1 << PB4);
+
+                if (!strcmp(tmpRxBuffer, "temp")) {
+
+                    int8_t temperature = 0, humidity = 0;
+
+                    //initialize temperature and humidity sensor
+                    dht_init();
+                    if (dht_read(&temperature, &humidity) != -1)
+                        printf("Umidita': %d%%     Temperatura: %d C\n", humidity, temperature);
+                    else
+                        printf("ERROR\n");
+                    dht_reset();
+                }
             }
         } else {
             if (c & UART_FRAME_ERROR) {
@@ -53,6 +67,6 @@ int main(void) {
             tmpRxBuffer[idxTmpRxBuffer++] = c;
         }
 
-        _delay_ms(50);
+        _delay_ms(200);
     }
 }
