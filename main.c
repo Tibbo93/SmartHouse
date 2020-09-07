@@ -1,9 +1,11 @@
 #include "avr_lib/dht.h"
+#include "avr_lib/lcd.h"
 #include "avr_lib/printf.h"
 #include "avr_lib/uart.h"
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <util/delay.h>
 
@@ -21,10 +23,14 @@ int main(void) {
     //initialize printf function
     printf_init();
 
+    //initialize display, cursor off
+    //lcd_init(LCD_DISP_ON);
+
     //enable global interrupt flag
     sei();
 
-    DDRB |= (1 << 4);          //set PB4 as output
+    DDRB |= (1 << PB4);          //set PB4 as output (led blue)
+    DDRB |= (1 << PB1);          //set PB1 as output (led alarm)
 
     while (1) {
         c = uart_getc();
@@ -34,11 +40,21 @@ int main(void) {
                 tmpRxBuffer[idxTmpRxBuffer] = '\0';
                 idxTmpRxBuffer = 0;
 
-                if (!strcmp(tmpRxBuffer, "on"))
+                if (!strcmp(tmpRxBuffer, "on")) {
                     PORTB |= (1 << PB4);
+                    PORTB |= (1 << PB1);
 
-                if (!strcmp(tmpRxBuffer, "off"))
+                    //lcd_clrscr();
+                    //lcd_puts("LED ACCESO");
+                }
+
+                if (!strcmp(tmpRxBuffer, "off")) {
                     PORTB &= ~(1 << PB4);
+                    PORTB &= ~(1 << PB1);
+
+                    //lcd_clrscr();
+                    //lcd_puts("LED SPENTO");
+                }
 
                 if (!strcmp(tmpRxBuffer, "temp")) {
 
@@ -46,9 +62,23 @@ int main(void) {
 
                     //initialize temperature and humidity sensor
                     dht_init();
-                    if (dht_read(&temperature, &humidity) != -1)
-                        printf("Umidita': %d%%     Temperatura: %d C\n", humidity, temperature);
-                    else
+                    if (dht_read(&temperature, &humidity) != -1) {
+
+                        /*char tmp[4];
+                        itoa(temperature, tmp, 10);
+
+                        //clear display and home cursor
+                        lcd_clrscr();
+
+                        lcd_puts("Temperatura ");
+                        lcd_puts(tmp);
+
+                        itoa(humidity, tmp, 10);
+                        lcd_puts(" C\nUmidita' ");
+                        lcd_puts(tmp);
+                        lcd_putc('%');
+                    */
+                    } else
                         printf("ERROR\n");
                     dht_reset();
                 }

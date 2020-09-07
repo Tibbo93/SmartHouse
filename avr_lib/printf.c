@@ -9,7 +9,7 @@ static FILE mystdout = FDEV_SETUP_STREAM(usart_putchar_printf, NULL, _FDEV_SETUP
 
 // this function is called by printf as a stream handler
 int usart_putchar_printf(char var, FILE *stream) {
-    
+
     if (var == '\n')
         uart_putc('\r');          //translate \n to \r for br@y++ terminal
     uart_putc(var);
