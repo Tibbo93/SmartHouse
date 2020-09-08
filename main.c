@@ -30,10 +30,49 @@ int main(void) {
     sei();
 
     DDRB |= (1 << PB4);          //set PB4 as output (led blue)
-    DDRB |= (1 << PB1);          //set PB1 as output (led alarm)
+
+    DDRB |= (1 << PB1);           //set PB1 as output (led alarm - motion)
+    DDRB &= ~(1 << PB0);          //set PB1 as input (motion sensor)
+    DDRB |= (1 << PB3);           //set PB3 as output (alarm buzzer - motion)
+
+    DDRG |= (1 << PG5);           //set PG5 as output (led alarm - fire)
+    DDRH &= ~(1 << PH4);          //set PH4 as input (fire sensor)
+    DDRH |= (1 << PH5);           //set PH5 as output (alarm buzzer - fire)
 
     while (1) {
+
         c = uart_getc();
+
+        //motion detected
+        if (((PINB) & (1 << PB0)) == 1) {
+            PORTB |= (1 << PB1);          ///turn on alarm led - motion
+            for (int8_t i = 0; i < 4; i++) {
+                PORTB |= (1 << PB3);
+                _delay_ms(200);
+                PORTB &= ~(1 << PB3);          //turn of buzzer alarm - motion
+                _delay_ms(200);
+            }
+            //lcd_puts("MOVIMENTO RILEVATO");
+        }
+        //motion not detected
+        else {
+            PORTB &= ~(1 << PB1);          //turn off alarm led - motion
+        }
+
+        //fire detected
+        if (((PINH) & (1 << PH4)) == 0) {
+            PORTG |= (1 << PG5);          //turn on alarm led - fire
+            for (int8_t j = 0; j < 4; j++) {
+                PORTH |= (1 << PH5);
+                _delay_ms(200);
+                PORTH &= ~(1 << PH5);          //turn of buzzer alarm - fire
+                _delay_ms(200);
+            }
+        }
+        //fire not detected
+        else {
+            PORTG &= ~(1 << PG5);          //turn off alarm led - fire
+        }
 
         if (c & UART_NO_DATA) {
             if (idxTmpRxBuffer != 0) {
@@ -42,7 +81,6 @@ int main(void) {
 
                 if (!strcmp(tmpRxBuffer, "on")) {
                     PORTB |= (1 << PB4);
-                    PORTB |= (1 << PB1);
 
                     //lcd_clrscr();
                     //lcd_puts("LED ACCESO");
@@ -50,7 +88,6 @@ int main(void) {
 
                 if (!strcmp(tmpRxBuffer, "off")) {
                     PORTB &= ~(1 << PB4);
-                    PORTB &= ~(1 << PB1);
 
                     //lcd_clrscr();
                     //lcd_puts("LED SPENTO");
@@ -63,6 +100,7 @@ int main(void) {
                     //initialize temperature and humidity sensor
                     dht_init();
                     if (dht_read(&temperature, &humidity) != -1) {
+                        printf("Temperatura: %d C    Umidita': %d%%", temperature, humidity);
 
                         /*char tmp[4];
                         itoa(temperature, tmp, 10);
@@ -97,6 +135,6 @@ int main(void) {
             tmpRxBuffer[idxTmpRxBuffer++] = c;
         }
 
-        _delay_ms(200);
+        _delay_ms(50);
     }
 }
