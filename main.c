@@ -2,6 +2,8 @@
 #include "avr_lib/lcd.h"
 #include "avr_lib/printf.h"
 #include "avr_lib/uart.h"
+#include "avr_lib/utilities.h"
+#include <avr/eeprom.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <stdio.h>
@@ -9,25 +11,22 @@
 #include <string.h>
 #include <util/delay.h>
 
-#define UART_BAUDRATE 19200
-
 int main(void) {
 
-    unsigned int c;
-    char tmpRxBuffer[16];
-    uint8_t idxTmpRxBuffer = 0;
+    uint8_t req;
+    char rxBuffer[RX_BUFFER_SIZE];
 
     //initialize uart library, pass baudrate and AVR cpu clock
     uart_init(UART_BAUD_SELECT(UART_BAUDRATE, F_CPU));
+
+    //enable global interrupt flag
+    sei();
 
     //initialize printf function
     printf_init();
 
     //initialize display, cursor off
-    //lcd_init(LCD_DISP_ON);
-
-    //enable global interrupt flag
-    sei();
+    lcd_init(LCD_DISP_ON);
 
     DDRB |= (1 << PB4);          //set PB4 as output (led blue)
 
@@ -39,21 +38,33 @@ int main(void) {
     DDRH &= ~(1 << PH4);          //set PH4 as input (fire sensor)
     DDRH |= (1 << PH5);           //set PH5 as output (alarm buzzer - fire)
 
+    memset(rxBuffer, 0, sizeof(rxBuffer));
+
     while (1) {
 
-        c = uart_getc();
+        req = get_request(rxBuffer);
 
-        //motion detected
+        if (req == 1) {
+            perform_request(rxBuffer);
+        }
+
+        memset(rxBuffer, 0, sizeof(rxBuffer));
+
+
+        /*motion detected
         if (((PINB) & (1 << PB0)) == 1) {
             PORTB |= (1 << PB1);          ///turn on alarm led - motion
+            lcd_clrscr();
+            lcd_puts("MOVIMENTO\n RILEVATO\n");
             for (int8_t i = 0; i < 4; i++) {
                 PORTB |= (1 << PB3);
                 _delay_ms(200);
                 PORTB &= ~(1 << PB3);          //turn of buzzer alarm - motion
                 _delay_ms(200);
             }
-            //lcd_puts("MOVIMENTO RILEVATO");
+            lcd_clrscr();
         }
+
         //motion not detected
         else {
             PORTB &= ~(1 << PB1);          //turn off alarm led - motion
@@ -62,13 +73,17 @@ int main(void) {
         //fire detected
         if (((PINH) & (1 << PH4)) == 0) {
             PORTG |= (1 << PG5);          //turn on alarm led - fire
+            lcd_clrscr();
+            lcd_puts("ALLARME INCENDIO");
             for (int8_t j = 0; j < 4; j++) {
                 PORTH |= (1 << PH5);
                 _delay_ms(200);
                 PORTH &= ~(1 << PH5);          //turn of buzzer alarm - fire
                 _delay_ms(200);
             }
+            lcd_clrscr();
         }
+
         //fire not detected
         else {
             PORTG &= ~(1 << PG5);          //turn off alarm led - fire
@@ -77,64 +92,32 @@ int main(void) {
         if (c & UART_NO_DATA) {
             if (idxTmpRxBuffer != 0) {
                 tmpRxBuffer[idxTmpRxBuffer] = '\0';
-                idxTmpRxBuffer = 0;
 
                 if (!strcmp(tmpRxBuffer, "on")) {
                     PORTB |= (1 << PB4);
 
-                    //lcd_clrscr();
-                    //lcd_puts("LED ACCESO");
+                    lcd_clrscr();
+                    lcd_puts("LED ACCESO");
                 }
 
-                if (!strcmp(tmpRxBuffer, "off")) {
+                else if (!strcmp(tmpRxBuffer, "off")) {
                     PORTB &= ~(1 << PB4);
 
-                    //lcd_clrscr();
-                    //lcd_puts("LED SPENTO");
+                    lcd_clrscr();
+                    lcd_puts("LED SPENTO");
                 }
 
-                if (!strcmp(tmpRxBuffer, "temp")) {
+                else if (!strcmp(tmpRxBuffer, "get_name")) {
 
-                    int8_t temperature = 0, humidity = 0;
+                    eeprom_read_block(&name, &eepromName, sizeof(eepromName));
+                    uart_puts(name);
+                }
 
-                    //initialize temperature and humidity sensor
-                    dht_init();
-                    if (dht_read(&temperature, &humidity) != -1) {
-                        printf("Temperatura: %d C    Umidita': %d%%", temperature, humidity);
+                else if (!strcmp(tmpRxBuffer, "set_name")) {
 
-                        /*char tmp[4];
-                        itoa(temperature, tmp, 10);
-
-                        //clear display and home cursor
-                        lcd_clrscr();
-
-                        lcd_puts("Temperatura ");
-                        lcd_puts(tmp);
-
-                        itoa(humidity, tmp, 10);
-                        lcd_puts(" C\nUmidita' ");
-                        lcd_puts(tmp);
-                        lcd_putc('%');
-                    */
-                    } else
-                        printf("ERROR\n");
-                    dht_reset();
+                    uart_puts(tmpRxBuffer);
                 }
             }
-        } else {
-            if (c & UART_FRAME_ERROR) {
-                uart_puts_P("UART Frame Error: ");
-            }
-            if (c & UART_OVERRUN_ERROR) {
-                uart_puts_P("UART Overrun Error: ");
-            }
-            if (c & UART_BUFFER_OVERFLOW) {
-                uart_puts_P("Buffer overflow error: ");
-            }
-
-            tmpRxBuffer[idxTmpRxBuffer++] = c;
-        }
-
-        _delay_ms(50);
+        }*/
     }
 }
