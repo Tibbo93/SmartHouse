@@ -8,31 +8,37 @@
 #include <string.h>
 #include <util/delay.h>
 
-char EEMEM eepromName[MAX_SIZE_NAME];
-uint8_t EEMEM eepromNameSet; 
-char name[MAX_SIZE_NAME] = { '\0' };
-uint8_t name_set;
+typedef struct {
+    uint8_t nameSet;
+    char name[MAX_SIZE_CHANNEL_NAME];
+} channel;
+
+char EEMEM eepromName[MAX_SIZE_DEVICE_NAME];
+uint8_t EEMEM eepromNameSet;
+channel EEMEM eepromDigitalChannels[NUM_DIGITAL_CHANNELS];
+
+char name[MAX_SIZE_DEVICE_NAME] = { 0 };
+uint8_t name_set = 0;
+channel digitalChannels[NUM_DIGITAL_CHANNELS];
 
 uint8_t (*funs[NUM_FUNS])(char **) = {
+    get_conf,
     get_name,
     set_name,
-    get_channel_name,
     set_channel_name,
     get_channel_value,
     set_channel_value,
     get_temperature,
-    query_channel
 };
 
 char *funs_name[NUM_FUNS] = {
+    "get_conf",
     "get_name",
     "set_name",
-    "get_channel_name",
     "set_channel_name",
     "get_channel_value",
     "set_channel_value",
     "get_temperature",
-    "query_channel"
 };
 
 uint8_t get_request(char *buffer) {
@@ -91,7 +97,7 @@ uint8_t perform_request(char *buffer) {
     }
 
     if (params[0] != NULL) {
-        for (int i = 0; i < NUM_FUNS; i++) {
+        for (uint8_t i = 0; i < NUM_FUNS; i++) {
             if (strcmp(params[0], funs_name[i]) == 0) {
                 return funs[i](params);
             }
@@ -99,6 +105,27 @@ uint8_t perform_request(char *buffer) {
     }
 
     return -1;
+}
+
+uint8_t get_conf(char **args) {
+
+    if (name_set == 255 || name_set == 0)
+        uart_putc('0');
+    else
+        uart_puts(name);
+    uart_putc('\n');
+
+    for (uint8_t i = 0; i < NUM_DIGITAL_CHANNELS; i++) {
+        if (digitalChannels[i].nameSet == 255 || digitalChannels[i].nameSet == 0) {
+            uart_putc('3');
+            uart_putc('\n');
+        } else {
+            uart_puts(digitalChannels[i].name);
+            uart_putc('\n');
+        }
+    }
+
+    return 1;
 }
 
 uint8_t get_name(char **args) {
@@ -109,10 +136,10 @@ uint8_t get_name(char **args) {
     name_set = eeprom_read_byte(&eepromNameSet);
     _delay_ms(20);
 
-    if (name_set==255)
+    if (name_set == 255 || name_set == 0)
         uart_putc('0');
     else {
-        eeprom_read_block((void *)name, (const void*)eepromName, sizeof(eepromName));
+        eeprom_read_block(name, eepromName, sizeof(eepromName));
         _delay_ms(20);
         uart_puts(name);
     }
@@ -121,20 +148,17 @@ uint8_t get_name(char **args) {
 }
 
 uint8_t set_name(char **args) {
-    
+
     if (args[1] == NULL)
         return -1;
 
-    eeprom_update_block((const void*)args[1], (void *)eepromName, sizeof(eepromName));
+    eeprom_update_block(args[1], eepromName, sizeof(eepromName));
     _delay_ms(20);
-    eeprom_update_byte((uint8_t*)&eepromNameSet, 1);
+
+    eeprom_update_byte(&eepromNameSet, 1);
     _delay_ms(20);
 
     return 1;
-}
-
-uint8_t get_channel_name(char **args) {
-    return 0;
 }
 
 uint8_t set_channel_name(char **args) {
@@ -146,10 +170,6 @@ uint8_t get_channel_value(char **args) {
 }
 
 uint8_t set_channel_value(char **args) {
-    return 0;
-}
-
-uint8_t query_channel(char **args) {
     return 0;
 }
 
@@ -188,4 +208,23 @@ uint8_t get_temperature(char **args) {
 
     dht_reset();
     return 1;
+}
+
+void led_init(void) {
+
+    DDRB = (1 << PIN_LED_0_RED);            //set PIN 12 as output
+    DDRB = (1 << PIN_LED_0_GREEN);          //set PIN 11 as output
+    DDRB = (1 << PIN_LED_0_BLUE);           //set PIN 10 as output
+}
+
+void upload_conf(void) {
+
+    name_set = eeprom_read_byte(&eepromNameSet);
+    _delay_ms(20);
+
+    eeprom_read_block(name, eepromName, sizeof(eepromName));
+    _delay_ms(20);
+
+    eeprom_read_block(digitalChannels, eepromDigitalChannels, sizeof(eepromDigitalChannels));
+    _delay_ms(50);
 }

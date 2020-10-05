@@ -15,9 +15,13 @@ int serialPort;
 
 int main(int argc, char const *argv[]) {
 
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE] = "get_conf";
 
-    serialPort = open(PORT_PATH, O_RDWR);
+    //char *tmp[1] = {"get_conf"};
+
+    serialPort = open(PORT_PATH, O_RDWR | O_NOCTTY | O_SYNC);
+
+    usleep(1000000);
 
     if (serialPort < 0) {
         printf("Error %i from open: %s\n", errno, strerror(errno));
@@ -28,6 +32,9 @@ int main(int argc, char const *argv[]) {
         printf("An error occured while communicating with the host");
         return EXIT_FAILURE;
     }
+
+    if (perform(buffer, serialPort))
+        printf("Upload configuration complete\n");
 
     printf("\nType 'help' to get command list\n");
     printf("Please insert one command at a time\n");

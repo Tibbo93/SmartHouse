@@ -35,7 +35,7 @@ int serial_port_init(int serialPort) {
     tty.c_oflag &= ~OPOST;          //prevent special interpretation of output bytes
     tty.c_oflag &= ~ONLCR;          //prevent conversion of newline to carriage return/line feed
 
-    tty.c_cc[VTIME] = 5;          //wait for up to 1s, returning as soon as any data is received
+    tty.c_cc[VTIME] = 10;          //wait for up to 1s, returning as soon as any data is received
     tty.c_cc[VMIN] = 0;
 
     //set in/out baud rate

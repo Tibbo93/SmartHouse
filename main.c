@@ -25,10 +25,12 @@ int main(void) {
     //initialize printf function
     printf_init();
 
-    //initialize display, cursor off
+    //initialize display, RGB led and sensors
     lcd_init(LCD_DISP_ON);
+    led_init();
 
-    DDRB |= (1 << PB4);          //set PB4 as output (led blue)
+    //upload configuration
+    upload_conf();
 
     DDRB |= (1 << PB1);           //set PB1 as output (led alarm - motion)
     DDRB &= ~(1 << PB0);          //set PB1 as input (motion sensor)
@@ -49,7 +51,6 @@ int main(void) {
         }
 
         memset(rxBuffer, 0, sizeof(rxBuffer));
-
 
         /*motion detected
         if (((PINB) & (1 << PB0)) == 1) {
@@ -105,17 +106,6 @@ int main(void) {
 
                     lcd_clrscr();
                     lcd_puts("LED SPENTO");
-                }
-
-                else if (!strcmp(tmpRxBuffer, "get_name")) {
-
-                    eeprom_read_block(&name, &eepromName, sizeof(eepromName));
-                    uart_puts(name);
-                }
-
-                else if (!strcmp(tmpRxBuffer, "set_name")) {
-
-                    uart_puts(tmpRxBuffer);
                 }
             }
         }*/
