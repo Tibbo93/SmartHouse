@@ -15,9 +15,8 @@ int serialPort;
 
 int main(int argc, char const *argv[]) {
 
+    int res;
     char buffer[BUFFER_SIZE] = "get_conf";
-
-    //char *tmp[1] = {"get_conf"};
 
     serialPort = open(PORT_PATH, O_RDWR | O_NOCTTY | O_SYNC);
 
@@ -33,20 +32,36 @@ int main(int argc, char const *argv[]) {
         return EXIT_FAILURE;
     }
 
-    if (perform(buffer, serialPort))
+    if (!get_conf(serialPort))
         printf("Upload configuration complete\n");
+    else {
+        printf("Error during upload configuration");
+        return EXIT_FAILURE;
+    }
 
     printf("\nType 'help' to get command list\n");
     printf("Please insert one command at a time\n");
 
-    do {
+    while (1) {
         memset(buffer, 0, sizeof(buffer));
         printf("\n>> smart_house_host ");
         fgets(buffer, BUFFER_SIZE, stdin);
 
-        perform(buffer, serialPort);
-    } while (strcmp(buffer, "exit"));
+        if (!strcmp(buffer, "exit\n")) {
+            break;
+        }
 
+        res = perform(buffer, serialPort);
+
+        if (res == -1)
+            printf("Command not found");
+        else if (res == EXIT_FAILURE)
+            printf("Invalid command");
+        else
+            printf("\nOperation complete!");
+    }
+
+    free_memory();
     close(serialPort);
-    return 0;
+    return EXIT_SUCCESS;
 }

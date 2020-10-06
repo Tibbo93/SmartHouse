@@ -117,7 +117,7 @@ uint8_t get_conf(char **args) {
 
     for (uint8_t i = 0; i < NUM_DIGITAL_CHANNELS; i++) {
         if (digitalChannels[i].nameSet == 255 || digitalChannels[i].nameSet == 0) {
-            uart_putc('3');
+            uart_putc('0');
             uart_putc('\n');
         } else {
             uart_puts(digitalChannels[i].name);
@@ -158,11 +158,26 @@ uint8_t set_name(char **args) {
     eeprom_update_byte(&eepromNameSet, 1);
     _delay_ms(20);
 
+    name_set = 1;
+    strcpy(name, args[1]);
+
     return 1;
 }
 
 uint8_t set_channel_name(char **args) {
-    return 0;
+
+    uint8_t idx = atoi(args[1]);
+
+    eeprom_update_block(args[2], eepromDigitalChannels[idx].name, sizeof(eepromDigitalChannels[idx].name));
+    _delay_ms(20);
+
+    eeprom_update_byte(&eepromDigitalChannels[idx].nameSet, 1);
+    _delay_ms(20);
+
+    digitalChannels[idx].nameSet = 1;
+    strcpy(digitalChannels[idx].name, args[2]);
+
+    return 1;
 }
 
 uint8_t get_channel_value(char **args) {

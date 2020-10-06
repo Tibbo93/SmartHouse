@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 #define UART_BAUDRATE 19200
-#define MAX_SIZE_DEVICE_NAME 20
-#define MAX_SIZE_CHANNEL_NAME 10
+#define MAX_SIZE_DEVICE_NAME 21
+#define MAX_SIZE_CHANNEL_NAME 21
 #define NUM_DIGITAL_CHANNELS 17
 #define NUM_FUNS 7
 #define MAX_NUM_ARGS 4

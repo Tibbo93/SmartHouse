@@ -30,35 +30,34 @@ char *default_digital_channels_name[NUM_DIGITAL_CHANNELS] = {
     "pin_53",
 };
 
-int (*funs[NUM_FUNS])(char **) = {
-    get_conf,
+int (*funs[])(char **) = {
     get_name,
     set_name,
     set_channel_name,
     get_channel_value,
     set_channel_value,
-    help,
     get_temperature,
-    query_channel
+    query_channel,
+    help
 };
 
-char *funs_name[NUM_FUNS] = {
-    "get_conf",
+char *funs_name[] = {
     "get_name",
     "set_name",
     "set_channel_name",
     "get_channel_value",
     "set_channel_value",
-    "help",
     "get_temperature",
-    "query_channel"
+    "query_channel",
+    "help",
+    "exit"
 };
 
 int perform(char buffer[], int fd) {
 
     char *token;
     char **params;
-    int status, idx = 0;
+    int status = -1, idx = 0, num_funs;
 
     serialPort = fd;
     memset(readBuffer, 0, sizeof(readBuffer));
@@ -66,7 +65,7 @@ int perform(char buffer[], int fd) {
     params = malloc(MAX_NUM_ARGS * sizeof(char *));
     if (params == NULL) {
         printf("Error during allocation memory\n");
-        return -1;
+        return EXIT_FAILURE;
     }
 
     token = strtok(buffer, " \n");
@@ -74,7 +73,7 @@ int perform(char buffer[], int fd) {
         params[idx] = malloc((strlen(token) + 1) * sizeof(char));
         if (params[idx] == NULL) {
             printf("Error during allocation memory\n");
-            return -1;
+            return EXIT_FAILURE;
         }
         strcpy(params[idx], token);
         token = strtok(NULL, " \n");
@@ -82,8 +81,10 @@ int perform(char buffer[], int fd) {
     }
     params[idx] = NULL;
 
+    num_funs = sizeof(funs) / sizeof(char *);
+
     if (params[0] != NULL) {
-        for (int i = 0; i < NUM_FUNS; i++) {
+        for (int i = 0; i < num_funs; i++) {
             if (strcmp(params[0], funs_name[i]) == 0) {
                 status = funs[i](params);
             }
@@ -98,40 +99,54 @@ int perform(char buffer[], int fd) {
     return status;
 }
 
-int get_conf(char **args) {
+int get_conf(int serial_port) {
 
-    char *token;
+    char *token, str[] = "get_conf";
     int numReadBytes = 0, idx = 0;
 
     memset(readBuffer, 0, sizeof(readBuffer));
 
-    write(serialPort, args[0], strlen(args[0]));
+    write(serialPort, str, strlen(str));
     usleep(1000000);
 
     numReadBytes = read(serialPort, readBuffer, sizeof(readBuffer));
-    if (numReadBytes < 0)
+    if (numReadBytes < 0) {
         printf("Error reading: %s\n", strerror(errno));
+        return EXIT_FAILURE;
+    }
 
     token = strtok(readBuffer, " \n");
     name = malloc((strlen(token) + 1) * sizeof(char));
     if (name == NULL) {
         printf("Error during allocation memory\n");
-        return -1;
+        return EXIT_FAILURE;
     }
     strcpy(name, token);
     token = strtok(NULL, " \n");
 
     while (token != NULL) {
-        channels[idx] = malloc((strlen(token) + 1) * sizeof(char));
-        if (channels[idx] == NULL) {
-            printf("Error during allocation memory\n");
-            return -1;
+
+        if (strcmp(token, "0") == 0) {
+            channels[idx] = malloc((strlen(default_digital_channels_name[idx]) + 1) * sizeof(char));
+            if (channels[idx] == NULL) {
+                printf("Error during allocation memory\n");
+                return EXIT_FAILURE;
+            }
+            strcpy(channels[idx], default_digital_channels_name[idx]);
+        } else {
+            channels[idx] = malloc((strlen(token) + 1) * sizeof(char));
+            if (channels[idx] == NULL) {
+                printf("Error during allocation memory\n");
+                return EXIT_FAILURE;
+            }
+            strcpy(channels[idx], token);
         }
-        strcpy(channels[idx++], token);
+
+        idx++;
         token = strtok(NULL, " \n");
     }
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 int get_name(char **args) {
@@ -139,8 +154,8 @@ int get_name(char **args) {
     int numReadBytes = 0;
 
     if (args[1] != NULL) {
-        printf("ERROR: invalid argument");
-        return -1;
+        printf("ERROR: invalid argument\n");
+        return EXIT_FAILURE;
     }
 
     write(serialPort, args[0], strlen(args[0]));
@@ -148,38 +163,100 @@ int get_name(char **args) {
 
     numReadBytes = read(serialPort, readBuffer, sizeof(readBuffer));
 
-    if (numReadBytes < 0)
+    if (numReadBytes < 0) {
         printf("Error reading: %s\n", strerror(errno));
+        return EXIT_FAILURE;
+    }
 
     if (!strcmp(readBuffer, "0"))
         printf("Missing name\n");
     else
         printf("Device name: %s\n", readBuffer);
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 int set_name(char **args) {
 
-    int numReadBytes = 0;
+    int numReadBytes = 0, str_len = 0;
+    char *str;
 
     if (args[1] == NULL) {
-        printf("ERROR: missing name");
-        return -1;
+        printf("ERROR: missing name\n");
+        return EXIT_FAILURE;
     } else if (args[2] != NULL) {
-        printf("ERROR: too many arguments");
-        return -1;
+        printf("ERROR: too many arguments\n");
+        return EXIT_FAILURE;
     }
 
-    write(serialPort, args[0], strlen(args[0]));
-    write(serialPort, " ", 1);
-    write(serialPort, args[1], strlen(args[1]));
+    strcpy(name, args[1]);
+
+    str_len = strlen(args[0]) + strlen(args[1]) + 1;
+    str = malloc((str_len + 1) * sizeof(char));
+    if (str == NULL) {
+        printf("Error during allocation memory\n");
+        return EXIT_FAILURE;
+    }
+    sprintf(str, "%s %s", args[0], args[1]);
+    write(serialPort, str, str_len);
     usleep(1000000);
 
-    return 1;
+    /*write(serialPort, args[0], strlen(args[0]));
+    write(serialPort, " ", 1);
+    write(serialPort, args[1], strlen(args[1]));
+    usleep(1000000);*/
+
+    return EXIT_SUCCESS;
 }
 
-int set_channel_name(char **args) {}
+int set_channel_name(char **args) {
+
+    int i = 0, str_len = 0;
+    char *str;
+
+    if (args[1] == NULL || args[2] == NULL || args[3] == NULL)
+        return EXIT_FAILURE;
+
+    if (args[4] != NULL)
+        return EXIT_FAILURE;
+
+    if (strlen(args[3]) > MAX_SIZE_CHANNEL_NAME) {
+        printf("Channel name too long (max 20 characters)\n");
+        return EXIT_FAILURE;
+    }
+
+    if (strcmp(args[1], name) != 0) {
+        printf("Device name not found\n");
+        return EXIT_FAILURE;
+    }
+
+    for (; i < NUM_DIGITAL_CHANNELS; i++) {
+        if (strcmp(args[2], channels[i]) == 0) {
+            break;
+        }
+    }
+
+    if (i == NUM_DIGITAL_CHANNELS) {
+        printf("Channel name not found\n");
+        return EXIT_FAILURE;
+    }
+
+    strcpy(channels[i], args[3]);
+
+    str_len = strlen(args[0]) + strlen(args[3]) + 4;
+    str = malloc((str_len + 1) * sizeof(char));
+    if (str == NULL) {
+        printf("Error during allocation memory\n");
+        return EXIT_FAILURE;
+    }
+    sprintf(str, "%s %d %s", args[0], i, args[3]);
+    write(serialPort, str, strlen(str));
+    usleep(1000000);
+
+    free(str);
+
+    return EXIT_SUCCESS;
+}
 
 int get_channel_value(char **args) {}
 
@@ -187,44 +264,43 @@ int set_channel_value(char **args) {}
 
 int help() {
 
+    int num_funs = sizeof(funs_name) / sizeof(char *);
+
     printf(">> Command list:\n");
 
-    for (int i = 0; i < NUM_FUNS; i++) {
+    for (int i = 0; i < num_funs; i++) {
         printf("\t- %s\n", funs_name[i]);
     }
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 int query_channel(char **args) {
 
     if (args[1] != NULL)
-        return -1;
+        return EXIT_FAILURE;
 
     printf("DIGITAL CHANNELS:\n");
 
     for (int i = 0; i < NUM_DIGITAL_CHANNELS; i++) {
-        if (strcmp(channels[i], "3") == 0)
-            printf("\t- %s \t\t (default name)\n", default_digital_channels_name[i]);
-        else
-            printf("\t- %s\n", channels[i]);
+        printf("\t- %s\n", channels[i]);
     }
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 int get_temperature(char **args) {
 
-    int n;
+    int num_read_bytes;
     char *token;
 
     write(serialPort, args[0], strlen(args[0]));
     usleep(1000000);
 
-    n = read(serialPort, &readBuffer, sizeof(readBuffer));
-    if (n < 0) {
+    num_read_bytes = read(serialPort, &readBuffer, sizeof(readBuffer));
+    if (num_read_bytes < 0) {
         printf("Error reading: %s\n", strerror(errno));
-        return -1;
+        return EXIT_FAILURE;
     }
 
     token = strtok(readBuffer, " \n");
@@ -233,5 +309,13 @@ int get_temperature(char **args) {
     token = strtok(NULL, " \n");
     printf("Humidity: %s%%\n", token);
 
-    return 1;
+    return EXIT_SUCCESS;
+}
+
+void free_memory() {
+
+    free(name);
+    for (int i = 0; i < NUM_DIGITAL_CHANNELS; i++) {
+        free(channels[i]);
+    }
 }
