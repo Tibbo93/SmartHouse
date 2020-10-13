@@ -26,17 +26,17 @@ int main(void) {
     printf_init();
 
     //initialize display, RGB led and sensors
-    lcd_init(LCD_DISP_ON);
+    //lcd_init(LCD_DISP_ON);
     led_init();
 
     //upload configuration
-    upload_conf();
+    load_conf();
 
     DDRB |= (1 << PB1);           //set PB1 as output (led alarm - motion)
     DDRB &= ~(1 << PB0);          //set PB1 as input (motion sensor)
     DDRB |= (1 << PB3);           //set PB3 as output (alarm buzzer - motion)
 
-    DDRG |= (1 << PG5);           //set PG5 as output (led alarm - fire)
+    //DDRG |= (1 << PG5);           //set PG5 as output (led alarm - fire) CAMBIATO
     DDRH &= ~(1 << PH4);          //set PH4 as input (fire sensor)
     DDRH |= (1 << PH5);           //set PH5 as output (alarm buzzer - fire)
 

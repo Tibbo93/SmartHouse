@@ -19,7 +19,6 @@ int main(int argc, char const *argv[]) {
     char buffer[BUFFER_SIZE] = "get_conf";
 
     serialPort = open(PORT_PATH, O_RDWR | O_NOCTTY | O_SYNC);
-
     usleep(1000000);
 
     if (serialPort < 0) {
@@ -32,13 +31,15 @@ int main(int argc, char const *argv[]) {
         return EXIT_FAILURE;
     }
 
-    if (!get_conf(serialPort))
-        printf("Upload configuration complete\n");
-    else {
+    res = download_conf(serialPort);
+    if (res) {
         printf("Error during upload configuration");
         return EXIT_FAILURE;
     }
 
+    usleep(2000000);
+
+    printf("Loading configuration complete\n");
     printf("\nType 'help' to get command list\n");
     printf("Please insert one command at a time\n");
 
