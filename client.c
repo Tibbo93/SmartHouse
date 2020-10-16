@@ -37,8 +37,6 @@ int main(int argc, char const *argv[]) {
         return EXIT_FAILURE;
     }
 
-    usleep(2000000);
-
     printf("Loading configuration complete\n");
     printf("\nType 'help' to get command list\n");
     printf("Please insert one command at a time\n");

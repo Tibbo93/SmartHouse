@@ -1,8 +1,6 @@
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
-#include <stdbool.h>
-
 #define SWITCH_B 0
 #define SWITCH_L 1
 #define DIGITAL_IN 2
@@ -13,7 +11,7 @@
 #define MAX_SIZE_CHANNEL_NAME 21
 #define READ_BUFFER_SIZE 512
 
-bool get_channel(char *old_name, char *new_name, char **channels, int *ch, int *count);
+int get_channel(char *name);
 
 int copy_channel(char *token, char **channels, char **def, int idx);
 

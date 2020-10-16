@@ -11,9 +11,10 @@
 #define MAX_NUM_ARGS 4
 #define RX_BUFFER_SIZE 128
 
-#define PIN_LED_0_RED PB6
-#define PIN_LED_0_GREEN PB5
-#define PIN_LED_0_BLUE PB4
+#define SWITCH_B 0
+#define SWITCH_L 1
+#define DIGITAL_IN 2
+#define ANALOG_IN 3
 
 uint8_t get_request(char *buffer);
 
@@ -37,6 +38,10 @@ uint8_t get_temperature(char **args);
 
 void load_conf(void);
 
-void led_init(void);
+void digital_out_init(void);
+
+void digital_in_init(void);
+
+void adc_init(void);
 
 #endif

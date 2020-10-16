@@ -56,22 +56,22 @@ uint8_t get_request(char *buffer) {
             if (idxRxBuffer != 0) {
                 buffer[idxRxBuffer] = '\0';
                 idxRxBuffer = 0;
-                return 1;
+                return EXIT_SUCCESS;
             } else {
                 break;
             }
         } else {
             if (c & UART_FRAME_ERROR) {
                 uart_puts_P("UART Frame Error: ");
-                return -1;
+                return EXIT_FAILURE;
             }
             if (c & UART_OVERRUN_ERROR) {
                 uart_puts_P("UART Overrun Error: ");
-                return -1;
+                return EXIT_FAILURE;
             }
             if (c & UART_BUFFER_OVERFLOW) {
                 uart_puts_P("Buffer overflow error: ");
-                return -1;
+                return EXIT_FAILURE;
             }
 
             buffer[idxRxBuffer++] = c;
@@ -79,7 +79,7 @@ uint8_t get_request(char *buffer) {
         _delay_ms(20);
     }
 
-    return 0;
+    return EXIT_FAILURE;
 }
 
 uint8_t perform_request(char *buffer) {
@@ -102,7 +102,7 @@ uint8_t perform_request(char *buffer) {
         }
     }
 
-    return -1;
+    return EXIT_FAILURE;
 }
 
 uint8_t get_avr_name(char **args) {
@@ -126,7 +126,7 @@ uint8_t get_avr_channels(char **args) {
         uart_putc('\n');
     }
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 uint8_t get_name(char **args) {
@@ -145,13 +145,13 @@ uint8_t get_name(char **args) {
         uart_puts(name_P);
     }
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 uint8_t set_name(char **args) {
 
     if (args[1] == NULL)
-        return -1;
+        return EXIT_FAILURE;
 
     eeprom_update_block(args[1], &name_ee, sizeof(name_ee));
     _delay_ms(50);
@@ -162,7 +162,7 @@ uint8_t set_name(char **args) {
     name_set_P = 1;
     strcpy(name_P, args[1]);
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 uint8_t set_channel_name(char **args) {
@@ -178,22 +178,72 @@ uint8_t set_channel_name(char **args) {
     channels_P[idx].nameSet = 1;
     strcpy(channels_P[idx].name, args[2]);
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 uint8_t get_channel_value(char **args) {
-    return 0;
+
+    uint8_t ch, type, bit;
+    uint16_t val = 0;
+
+    ch = atoi(args[1]);
+    type = ch / 8;
+    bit = ch % 8;
+
+    switch (type) {
+    case SWITCH_B:
+        val = ((PORTB & (1 << bit)) != 0);
+        break;
+    case SWITCH_L:
+        val = ((PORTL & (1 << bit)) != 0);
+        break;
+    case DIGITAL_IN:
+        val = ((PORTC & (1 << bit)) != 0);
+        break;
+    case ANALOG_IN:
+        val = adc_read(ch);
+        break;
+    default:
+        break;
+    }
+
+    uart_putc(val + '0');
+    return EXIT_SUCCESS;
 }
 
 uint8_t set_channel_value(char **args) {
 
-    return 0;
+    uint8_t type, val, bit, ch;
+
+    val = atoi(args[2]);
+    ch = atoi(args[1]);
+    type = ch / 8;
+    bit = ch % 8;
+
+    switch (type) {
+    case SWITCH_B:
+        if (val == 1)
+            PORTB |= (1 << bit);
+        else
+            PORTB &= ~(1 << (bit));
+        break;
+    case SWITCH_L:
+        if (val == 1)
+            PORTL |= (1 << bit);
+        else
+            PORTL &= ~(1 << (bit));
+        break;
+    default:
+        break;
+    }
+
+    return EXIT_SUCCESS;
 }
 
 uint8_t get_temperature(char **args) {
 
     if (args[1] != NULL)
-        return -1;
+        return EXIT_FAILURE;
 
     int8_t temperature = 0, humidity = 0;
 
@@ -220,18 +270,11 @@ uint8_t get_temperature(char **args) {
         lcd_putc('%');
 
     } else {
-        return -1;
+        return EXIT_FAILURE;
     }
 
     dht_reset();
-    return 1;
-}
-
-void led_init(void) {
-
-    DDRB = (1 << PIN_LED_0_RED);            //set PIN 12 as output
-    DDRB = (1 << PIN_LED_0_GREEN);          //set PIN 11 as output
-    DDRB = (1 << PIN_LED_0_BLUE);           //set PIN 10 as output
+    return EXIT_SUCCESS;
 }
 
 void load_conf(void) {
@@ -244,4 +287,34 @@ void load_conf(void) {
 
     eeprom_read_block(&channels_P, &channels_ee, sizeof(channels_ee));
     _delay_ms(50);
+}
+
+void digital_out_init(void) {
+
+    DDRB |= 0xff;
+    DDRL |= 0xff;
+}
+
+void digital_in_init(void) {
+
+    DDRC = 0x00;
+}
+
+void adc_init(void) {
+
+    ADMUX = (1 << REFS0);                                                       //AREF = AVcc
+    ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);          //set prescaler 128 and adc enable
+}
+
+uint16_t adc_read(uint8_t ch) {
+
+    ch &= 0b0000111;                      //AND operation with 7
+    ADMUX = (ADMUX & 0xf8) | ch;          //clears the bottom 3 bit befor ORing
+
+    ADCSRA |= (1 << ADSC);          //adc start convertion
+
+    while (ADCSRA & (1 << ADSC))
+        ;          //wait for conversion complete
+
+    return ADC;
 }

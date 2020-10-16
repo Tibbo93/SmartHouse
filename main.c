@@ -25,20 +25,14 @@ int main(void) {
     //initialize printf function
     printf_init();
 
-    //initialize display, RGB led and sensors
+    //initialize display and channels
     //lcd_init(LCD_DISP_ON);
-    led_init();
+    digital_out_init();
+    digital_in_init();
+    adc_init();
 
     //upload configuration
     load_conf();
-
-    DDRB |= (1 << PB1);           //set PB1 as output (led alarm - motion)
-    DDRB &= ~(1 << PB0);          //set PB1 as input (motion sensor)
-    DDRB |= (1 << PB3);           //set PB3 as output (alarm buzzer - motion)
-
-    //DDRG |= (1 << PG5);           //set PG5 as output (led alarm - fire) CAMBIATO
-    DDRH &= ~(1 << PH4);          //set PH4 as input (fire sensor)
-    DDRH |= (1 << PH5);           //set PH5 as output (alarm buzzer - fire)
 
     memset(rxBuffer, 0, sizeof(rxBuffer));
 
@@ -46,7 +40,7 @@ int main(void) {
 
         req = get_request(rxBuffer);
 
-        if (req == 1) {
+        if (req == EXIT_SUCCESS) {
             perform_request(rxBuffer);
         }
 

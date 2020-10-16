@@ -1,6 +1,6 @@
 #include "utilities.h"
+#include <ctype.h>
 #include <errno.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +23,7 @@ char *default_switch_B[] = {
     "led_2_r",          //pin 10
     "led_2_g",          //pin 11
     "led_2_b",          //pin 12
-    "led_3"            //pin 13
+    "led_3"             //pin 13
 };
 
 //switch pattern "name:pin_number"
@@ -85,24 +85,33 @@ char *funs_name[] = {
     "exit"
 };
 
-bool get_channel(char *old_name, char *new_name, char **channels, int *ch, int *count) {
+int get_channel(char *name) {
 
-    *ch = 0;
-    (*count)++;
-
-    for (; *ch < 8; (*ch)++) {
-        if (strcmp(old_name, channels[*ch]) == 0) {
-            channels[*ch] = realloc(channels[*ch], strlen(new_name) + 1);
-            if (channels[*ch] == NULL) {
-                printf("Error during allocation memory\n");
-                return false;
-            }
-            strcpy(channels[*ch], new_name);
-            return true;
+    for (int i = 0; i < 8; i++) {
+        if (strcmp(name, switch_B[i]) == 0) {
+            return i;
         }
     }
 
-    return false;
+    for (int i = 0; i < 8; i++) {
+        if (strcmp(name, switch_L[i]) == 0) {
+            return i + 8;
+        }
+    }
+
+    for (int i = 0; i < 8; i++) {
+        if (strcmp(name, digital_in[i]) == 0) {
+            return i + 16;
+        }
+    }
+
+    for (int i = 0; i < 8; i++) {
+        if (strcmp(name, analog_in[i]) == 0) {
+            return i + 24;
+        }
+    }
+
+    return -1;
 }
 
 int copy_channel(char *token, char **channels, char **def, int idx) {
@@ -273,7 +282,7 @@ int get_name(char **args) {
     if (strcmp(name, "0") == 0)
         printf("\n\tMissing name\n");
     else
-        printf("\n\tDevice name: %s\n", name);
+        printf("\n\tDEVICE NAME: %s\n", name);
 
     return EXIT_SUCCESS;
 }
@@ -310,7 +319,6 @@ int set_channel_name(char **args) {
 
     int ch, count = -1, len;
     char *str;
-    bool found = false;
 
     if (args[1] == NULL || args[2] == NULL || args[3] == NULL)
         return EXIT_FAILURE;
@@ -328,23 +336,50 @@ int set_channel_name(char **args) {
         return EXIT_FAILURE;
     }
 
-    found = get_channel(args[2], args[3], switch_B, &ch, &count);
+    ch = get_channel(args[2]);
 
-    if (!found)
-        found = get_channel(args[2], args[3], switch_L, &ch, &count);
-
-    if (!found)
-        found = get_channel(args[2], args[3], digital_in, &ch, &count);
-
-    if (!found)
-        found = get_channel(args[2], args[3], analog_in, &ch, &count);
-
-    if (!found) {
+    if (ch == -1) {
         printf("Channel name not found\n");
         return EXIT_FAILURE;
     }
 
-    ch = ch + (8 * count);
+    switch (ch / 8) {
+    case 0:
+        switch_B[(ch % 8)] = realloc(switch_B[(ch % 8)], strlen(args[3]) + 1);
+        if (switch_B[(ch % 8)] == NULL) {
+            printf("Error during allocation memory\n");
+            return EXIT_FAILURE;
+        }
+        strcpy(switch_B[(ch % 8)], args[3]);
+        break;
+    case 1:
+        switch_L[(ch % 8)] = realloc(switch_L[(ch % 8)], strlen(args[3]) + 1);
+        if (switch_L[(ch % 8)] == NULL) {
+            printf("Error during allocation memory\n");
+            return EXIT_FAILURE;
+        }
+        strcpy(switch_L[(ch % 8)], args[3]);
+        break;
+    case 2:
+        digital_in[(ch % 8)] = realloc(digital_in[(ch % 8)], strlen(args[3]) + 1);
+        if (digital_in[(ch % 8)] == NULL) {
+            printf("Error during allocation memory\n");
+            return EXIT_FAILURE;
+        }
+        strcpy(digital_in[(ch % 8)], args[3]);
+        break;
+    case 3:
+        analog_in[(ch % 8)] = realloc(analog_in[(ch % 8)], strlen(args[3]) + 1);
+        if (analog_in[(ch % 8)] == NULL) {
+            printf("Error during allocation memory\n");
+            return EXIT_FAILURE;
+        }
+        strcpy(analog_in[(ch % 8)], args[3]);
+        break;
+    default:
+        break;
+    }
+
     len = strlen(args[0]) + strlen(args[3]) + 5;
     str = malloc((len + 1) * sizeof(char));
     if (str == NULL) {
@@ -353,60 +388,94 @@ int set_channel_name(char **args) {
     }
     sprintf(str, "%s %d %s", args[0], ch, args[3]);
     write(serialPort, str, len);
-    usleep(5000000);
+    usleep(1000000);
 
     free(str);
     return EXIT_SUCCESS;
 }
 
-int get_channel_value(char **args) {}
+int get_channel_value(char **args) {
 
-int set_channel_value(char **args) {
-
-    int ch = 0, value, str_len;
+    int ch, len, num_read_bytes;
     char *str;
 
-    /*if (args[1] == NULL || args[2] == NULL || args[3] == NULL)
+    if (args[1] == NULL)
         return EXIT_FAILURE;
 
-    if (args[1] != name)
+    if (args[2] != NULL)
         return EXIT_FAILURE;
 
-    for (; ch < NUM_DIGITAL_CHANNELS; ch++) {
-        if (strcmp(args[2], channels[ch]) == 0)
-            break;
-    }
-
-    if (ch == NUM_DIGITAL_CHANNELS) {
+    ch = get_channel(args[1]);
+    if (ch == -1) {
         printf("Channel name not found\n");
         return EXIT_FAILURE;
     }
 
-    for (int i = 0; i < strlen(args[3]); i++) {
-        if (isdigit(args[3][i]) == 0) {
+    len = strlen(args[0]) + 3;
+    str = malloc((len + 1) * sizeof(char));
+    if (str == NULL) {
+        printf("Error during allocation memory\n");
+        return EXIT_FAILURE;
+    }
+    sprintf(str, "%s %d", args[0], ch);
+    write(serialPort, str, len);
+    usleep(1000000);
+
+    num_read_bytes = read(serialPort, readBuffer, READ_BUFFER_SIZE);
+    if (num_read_bytes < 0) {
+        printf("Error reading: %s\n", strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    readBuffer[num_read_bytes] = '\0';
+    printf("\n\tVALUE: %s\n", readBuffer);
+
+    free(str);
+    return EXIT_SUCCESS;
+}
+
+int set_channel_value(char **args) {
+
+    int ch = 0, value, len;
+    char *str;
+
+    if (args[1] == NULL || args[2] == NULL)
+        return EXIT_FAILURE;
+
+    if (args[3] != NULL)
+        return EXIT_FAILURE;
+
+    ch = get_channel(args[1]);
+    if (ch == -1) {
+        printf("Channel name not found\n");
+        return EXIT_FAILURE;
+    }
+
+    for (int i = 0; i < strlen(args[2]); i++) {
+        if (isdigit(args[2][i]) == 0) {
             printf("Invalid value");
             return EXIT_FAILURE;
         }
     }
 
-    value = atoi(args[3]);
+    value = atoi(args[2]);
 
     if (value < 0 || value > 255) {
         printf("Invalid value");
         return EXIT_FAILURE;
     }
 
-    str_len = strlen(args[0]) + strlen(args[3]) + 4;
-    str = malloc((str_len + 1) * sizeof(char));
+    len = strlen(args[0]) + strlen(args[2]) + 4;
+    str = malloc((len + 1) * sizeof(char));
     if (str == NULL) {
         printf("Error during allocation memory\n");
         return EXIT_FAILURE;
     }
-    sprintf(str, "%s %d %s", args[0], ch, args[3]);
-    write(serialPort, str, strlen(str));
+    sprintf(str, "%s %d %s", args[0], ch, args[2]);
+    write(serialPort, str, len);
     usleep(1000000);
 
-    free(str);*/
+    free(str);
     return EXIT_SUCCESS;
 }
 
@@ -457,7 +526,7 @@ int get_temperature(char **args) {
     write(serialPort, args[0], strlen(args[0]));
     usleep(1000000);
 
-    num_read_bytes = read(serialPort, &readBuffer, sizeof(readBuffer));
+    num_read_bytes = read(serialPort, readBuffer, READ_BUFFER_SIZE);
     if (num_read_bytes < 0) {
         printf("Error reading: %s\n", strerror(errno));
         return EXIT_FAILURE;
