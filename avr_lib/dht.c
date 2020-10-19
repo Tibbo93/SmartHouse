@@ -3,20 +3,6 @@
 #include <stdio.h>
 #include <util/delay.h>
 
-#define _DHT_h
-
-#define DHT_PIN PC3
-#define DHT_TIMEOUT 200
-#define DHT_PIN_INPUT() (DDRC &= ~(1 << DHT_PIN))
-#define DHT_PIN_OUTPUT() (DDRC |= (1 << DHT_PIN))
-#define DHT_PIN_LOW() (PORTC &= ~(1 << DHT_PIN))
-#define DHT_PIN_HIGH() (PORTC |= (1 << DHT_PIN))
-#define DHT_PIN_READ() (PINC & (1 << DHT_PIN))
-
-void dht_init(void);
-void dht_reset(void);
-int8_t dht_read(int8_t *temperature, int8_t *humidity);
-
 void dht_init(void) {
 
     DHT_PIN_OUTPUT();
@@ -36,7 +22,7 @@ int8_t dht_read(int8_t *temperature, int8_t *humidity) {
 
     //send request to the sensor
     DHT_PIN_LOW();          //set to low pin
-    _delay_ms(18);
+    _delay_ms(20);
     DHT_PIN_HIGH();           //set to high pin
     DHT_PIN_INPUT();          //set DHT_PIN as input
     _delay_us(40);
@@ -68,8 +54,9 @@ int8_t dht_read(int8_t *temperature, int8_t *humidity) {
             timeOutCounter = 0;
             while (DHT_PIN_READ()) {
                 timeOutCounter++;
-                if (timeOutCounter > DHT_TIMEOUT)
+                if (timeOutCounter > DHT_TIMEOUT) {
                     return -1;
+                }
             }
         }
         data[i] = result;

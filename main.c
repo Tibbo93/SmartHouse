@@ -1,8 +1,8 @@
 #include "avr_lib/dht.h"
 #include "avr_lib/lcd.h"
-#include "avr_lib/printf.h"
 #include "avr_lib/uart.h"
 #include "avr_lib/utilities.h"
+#include "avr_lib/requests.h"
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>
@@ -13,40 +13,32 @@
 
 int main(void) {
 
-    uint8_t req;
-    char rxBuffer[RX_BUFFER_SIZE];
+    char rx_buffer[RX_BUFFER_SIZE];
 
     //initialize uart library, pass baudrate and AVR cpu clock
-    uart_init(UART_BAUD_SELECT(UART_BAUDRATE, F_CPU));
-
-    //enable global interrupt flag
-    sei();
-
-    //initialize printf function
-    printf_init();
+    uart_init();
 
     //initialize display and channels
     //lcd_init(LCD_DISP_ON);
     digital_out_init();
     digital_in_init();
     adc_init();
+    pwm_init();
 
     //upload configuration
     load_conf();
 
-    memset(rxBuffer, 0, sizeof(rxBuffer));
-
     while (1) {
 
-        req = get_request(rxBuffer);
+        get_request(rx_buffer);
 
-        if (req == EXIT_SUCCESS) {
-            perform_request(rxBuffer);
-        }
+        //send_response(rx_buffer);
 
-        memset(rxBuffer, 0, sizeof(rxBuffer));
+        perform_request(rx_buffer);
 
-        /*motion detected
+        /*memset(rx_buffer, 0, sizeof(rx_buffer));
+
+        motion detected
         if (((PINB) & (1 << PB0)) == 1) {
             PORTB |= (1 << PB1);          ///turn on alarm led - motion
             lcd_clrscr();
