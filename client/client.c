@@ -1,8 +1,11 @@
+#include "client_lib/packet_handler.h"
 #include "client_lib/requests.h"
 #include "client_lib/serial.h"
 #include "client_lib/utilities.h"
+#include "../common/TinyFrame.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +21,6 @@ int main(int argc, char const *argv[]) {
 
     int res;
     char buffer[BUFFER_SIZE];
-    //char rx_buf[BUFFER_SIZE];
 
     serialPort = open(PORT_PATH, O_RDWR | O_NOCTTY | O_SYNC);
     usleep(1000000);
@@ -36,16 +38,18 @@ int main(int argc, char const *argv[]) {
     printf("@@@  @   @ @  @ @  @   @   @  @  @@   @@  @@@  @@@@\n\n\n\n");
 
     if (serial_port_init(serialPort) == -1) {
-        printf("An error occured while communicating with the host");
+        printf("An error occured while communicating with the host\n");
+        close(serialPort);
         return EXIT_FAILURE;
     }
 
     res = download_conf(serialPort);
     if (res) {
-        printf("Error during upload configuration");
+        printf("Error during upload configuration\n");
+        close(serialPort);
         return EXIT_FAILURE;
     }
-    usleep(1000000);
+    usleep(2000000);
 
     printf("Loading configuration complete\n");
     printf("\nType 'help' to get command list\n");
@@ -54,7 +58,6 @@ int main(int argc, char const *argv[]) {
     while (1) {
 
         memset(buffer, 0, sizeof(buffer));
-        //memset(rx_buf, 0, sizeof(buffer));
         printf("\n>> smart_house_host ");
         fgets(buffer, BUFFER_SIZE, stdin);
 
@@ -62,23 +65,14 @@ int main(int argc, char const *argv[]) {
             break;
         }
 
-        /*printf("%zu\n", write(serialPort, buffer, strlen(buffer)));
-
-        usleep(1000000);
-
-        printf("%zu\n", read(serialPort, rx_buf, BUFFER_SIZE));
-
-        printf("%s\n", rx_buf);
-    }*/
-
         res = perform(buffer, serialPort);
 
         if (res == -1)
-            printf("Command not found");
+            printf("\n\tCommand not found\n");
         else if (res == EXIT_FAILURE)
-            printf("Invalid command");
+            printf("\n\tInvalid command\n");
         else
-            printf("\nOperation complete!");
+            printf("\n\tOperation complete!\n");
     }
 
     free_memory();

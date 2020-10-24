@@ -28,50 +28,29 @@ void load_conf(void) {
     _delay_ms(50);
 }
 
-uint8_t get_avr_name(char **args) {
+uint8_t get_avr_name(char **args, char *payload) {
 
-    if (name_set_P == 255 || name_set_P == 0)
-        send_response("0");
-    else {
-        send_response(name_P);
-    }
-
+    if (name_set_P == 0xff || name_set_P == 0)
+        strcpy(payload, "0");
+    else
+        strcpy(payload, name_P);
     return EXIT_SUCCESS;
 }
 
-uint8_t get_avr_channels(char **args) {
+uint8_t get_avr_channels(char **args, char *payload) {
 
     for (uint8_t i = 0; i < NUM_CHANNELS; i++) {
         if (channels_P[i].nameSet == 255 || channels_P[i].nameSet == 0)
-            send_response("0");
+            strcat(payload, "0");
         else
-            send_response(channels_P[i].name);
-        send_response("\n");
+            strcat(payload, channels_P[i].name);
+        strcat(payload, ":");
     }
 
     return EXIT_SUCCESS;
 }
 
-uint8_t get_name(char **args) {
-
-    if (args[1] != NULL)
-        return -1;
-
-    name_set_P = eeprom_read_byte(&name_set_ee);
-    _delay_ms(20);
-
-    if (name_set_P == 255 || name_set_P == 0)
-        send_response("0");
-    else {
-        eeprom_read_block(&name_P, &name_ee, sizeof(name_ee));
-        _delay_ms(20);
-        send_response(name_P);
-    }
-
-    return EXIT_SUCCESS;
-}
-
-uint8_t set_name(char **args) {
+uint8_t set_name(char **args, char *payload) {
 
     if (args[1] == NULL)
         return EXIT_FAILURE;
@@ -88,7 +67,7 @@ uint8_t set_name(char **args) {
     return EXIT_SUCCESS;
 }
 
-uint8_t set_channel_name(char **args) {
+uint8_t set_channel_name(char **args, char *payload) {
 
     uint8_t idx = atoi(args[1]);
 
@@ -104,11 +83,10 @@ uint8_t set_channel_name(char **args) {
     return EXIT_SUCCESS;
 }
 
-uint8_t get_channel_value(char **args) {
+uint8_t get_channel_value(char **args, char *payload) {
 
     uint8_t ch, type, bit;
     uint16_t val = 0;
-    char str[2] = { 0 };
 
     ch = atoi(args[1]);
     type = ch / 8;
@@ -131,12 +109,12 @@ uint8_t get_channel_value(char **args) {
         break;
     }
 
-    sprintf(str, "%d", val);
-    send_response(str);
+    sprintf(payload, "%d", val);
+
     return EXIT_SUCCESS;
 }
 
-uint8_t set_channel_value(char **args) {
+uint8_t set_channel_value(char **args, char *payload) {
 
     uint8_t type, val, bit, ch;
 
@@ -173,7 +151,7 @@ uint8_t set_channel_value(char **args) {
     return EXIT_SUCCESS;
 }
 
-uint8_t get_temperature(char **args) {
+uint8_t get_temperature(char **args, char *payload) {
 
     if (args[1] != NULL)
         return EXIT_FAILURE;
@@ -184,28 +162,23 @@ uint8_t get_temperature(char **args) {
     dht_init();
     if (dht_read(&temperature, &humidity) != -1) {
 
+        sprintf(payload, "%d:%d", temperature, humidity);
+
         char tmp[4] = { 0 };
         itoa(temperature, tmp, 10);
-        send_response(tmp);
-        send_response(" ");
-
         //clear display and home cursor
-        //lcd_clrscr();
-
-        //lcd_puts("Temperatura ");
-        //lcd_puts(tmp);
-
+        lcd_clrscr();
+        lcd_puts("Temperatura ");
+        lcd_puts(tmp);
         itoa(humidity, tmp, 10);
-        send_response(tmp);
+        lcd_puts(" C\nUmidita' ");
+        lcd_puts(tmp);
+        lcd_putc('%');
 
-        //lcd_puts(" C\nUmidita' ");
-        //lcd_puts(tmp);
-        //lcd_putc('%');
-
-    } else {
-        return EXIT_FAILURE;
+        dht_reset();
+        return EXIT_SUCCESS;
     }
 
     dht_reset();
-    return EXIT_SUCCESS;
+    return EXIT_FAILURE;
 }

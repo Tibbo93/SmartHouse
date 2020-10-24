@@ -56,7 +56,8 @@ typedef struct UART {
     volatile uint8_t rx_size;
 
     int baud;
-    int uart_num;          // hardware uart;
+    // hardware uart;
+    int uart_num;
 } UART;
 
 static UART uart_0;
@@ -86,8 +87,10 @@ struct UART *UART_init(const char *device __attribute__((unused)), uint32_t baud
     uart->rx_end = 0;
     uart->rx_size = 0;
 
-    UCSR0C = _BV(UCSZ01) | _BV(UCSZ00);             /* 8-bit data */
-    UCSR0B = _BV(RXEN0) | _BV(TXEN0) | _BV(RXCIE0); /* Enable RX and TX */
+    // 8-bit data
+    UCSR0C = _BV(UCSZ01) | _BV(UCSZ00);
+    // Enable RX and TX */
+    UCSR0B = _BV(RXEN0) | _BV(TXEN0) | _BV(RXCIE0);
     sei();
     return &uart_0;
 }
@@ -125,12 +128,14 @@ void UART_putChar(struct UART *uart, uint8_t c) {
         uart->tx_buffer[uart->tx_end] = c;
         BUFFER_PUT(uart->tx, UART_BUFFER_SIZE);
     }
-    UCSR0B |= _BV(UDRIE0);          // enable transmit interrupt
+    // enable transmit interrupt
+    UCSR0B |= _BV(UDRIE0);
 }
 
 uint8_t UART_getChar(struct UART *uart) {
-    while (uart->rx_size == 0)
-        ;
+    //while (uart->rx_size == 0);
+    if(uart->rx_size == 0)
+        return 0xff;
     uint8_t c;
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
         c = uart->rx_buffer[uart->rx_start];

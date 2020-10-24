@@ -1,4 +1,6 @@
 #include "requests.h"
+#include "../../common/TinyFrame.h"
+#include "packet_handler.h"
 #include "utilities.h"
 #include <ctype.h>
 #include <errno.h>
@@ -14,21 +16,23 @@ char *switch_B[8];
 char *switch_L[8];
 char *digital_in[8];
 char *analog_in[8];
+TinyFrame *tf;
+char *dataMsg = NULL;
 
 char *default_switch_B[] = {
-    "led_0",            //pin 53
+    "led_0",            //pin 53 (fire)
     "led_1_r",          //pin 52
     "led_1_g",          //pin 51
     "led_1_b",          //pin 50
-    "led_2_r",          //pin 10
-    "led_2_g",          //pin 11
-    "led_2_b",          //pin 12
-    "led_3"             //pin 13
+    "led_2_r",          //pin 10 (PWM)
+    "led_2_g",          //pin 11 (PWM)
+    "led_2_b",          //pin 12 (PWM)
+    "led_3"             //pin 13 (motion)
 };
 
 char *default_switch_L[] = {
-    "buzzer_0",           //pin 49
-    "buzzer_1",           //pin 48
+    "buzzer_0",           //pin 49 (fire)
+    "buzzer_1",           //pin 48 (motion)
     "switch_11",          //pin 47
     "switch_12",          //pin 46
     "switch_13",          //pin 45
@@ -58,6 +62,18 @@ char *default_analog_in[] = {
     "analog_6",
     "analog_7"
 };
+
+TF_Result replyListener(TinyFrame *tf, TF_Msg *msg) {
+
+    if(msg->type == ERROR_MSG) {
+        dataMsg = NULL;
+        printf("\n\tERROR: something went wrong during request, try again\n");
+        return TF_CLOSE;
+    }
+
+    dataMsg = (char *)msg->data;
+    return TF_CLOSE;
+}
 
 int get_channel(char *name) {
 
@@ -90,49 +106,58 @@ int get_channel(char *name) {
 
 int get_avr_name_conf(int serialPort) {
 
-    char str[] = "get_avr_name";
-    int numReadBytes;
-
     memset(readBuffer, 0, sizeof(readBuffer));
 
-    write(serialPort, str, sizeof(str));
-    usleep(500000);
+    tf = TF_Init(TF_MASTER);
 
-    numReadBytes = read(serialPort, readBuffer, READ_BUFFER_SIZE);
-    if (numReadBytes < 0) {
-        printf("Error reading: %s\n", strerror(errno));
+    TF_Msg m;
+    TF_ClearMsg(&m);
+    m.type = REQUEST_MSG;
+    m.data = (uint8_t *)"get_avr_name";
+    m.len = 13;
+    TF_Query(tf, &m, replyListener, 0);
+
+    usleep(1000000);
+
+    receive_message(readBuffer, serialPort, tf);
+
+    usleep(1000000);
+
+    if(dataMsg==NULL)
         return EXIT_FAILURE;
-    }
-    readBuffer[numReadBytes] = '\0';
 
-    name = malloc((numReadBytes + 1) * sizeof(char));
+    name = malloc((strlen(dataMsg) + 1) * sizeof(char));
     if (name == NULL) {
-        printf("Error during allocation memory\n");
+        printf("\n\tError during allocation memory\n");
         return EXIT_FAILURE;
     }
-    strcpy(name, readBuffer);
+    strcpy(name, dataMsg);
 
     return EXIT_SUCCESS;
 }
 
 int get_avr_channels_conf(int serialPort) {
 
-    char *token, str[] = "get_avr_channels";
+    char *token;
     int numReadBytes, idx = 0, count = 0;
 
     memset(readBuffer, 0, sizeof(readBuffer));
 
-    write(serialPort, str, sizeof(str));
+    TF_Msg m;
+    TF_ClearMsg(&m);
+    m.type = REQUEST_MSG;
+    m.data = (uint8_t *)"get_avr_channels";
+    m.len = 17;
+    TF_Query(tf, &m, replyListener, 0);
+
     usleep(1000000);
 
-    numReadBytes = read(serialPort, readBuffer, READ_BUFFER_SIZE);
-    if (numReadBytes < 0) {
-        printf("Error reading: %s\n", strerror(errno));
-        return EXIT_FAILURE;
-    }
-    readBuffer[numReadBytes] = '\0';
+    receive_message(readBuffer, serialPort, tf);
 
-    token = strtok(readBuffer, " \n");
+    if(dataMsg==NULL)
+        return EXIT_FAILURE;
+
+    token = strtok(dataMsg, " :\n");
     while (token != NULL) {
         switch (count) {
         case 0:
@@ -156,7 +181,7 @@ int get_avr_channels_conf(int serialPort) {
         }
 
         idx++;
-        token = strtok(NULL, " \n");
+        token = strtok(NULL, " :\n");
         if ((idx % 8) == 0) {
             count++;
             idx = 0;
@@ -169,7 +194,7 @@ int get_avr_channels_conf(int serialPort) {
 int get_name(char **args, int serialPort) {
 
     if (args[1] != NULL) {
-        printf("ERROR: invalid argument\n");
+        printf("\n\tERROR: invalid argument\n");
         return EXIT_FAILURE;
     }
 
@@ -187,26 +212,38 @@ int set_name(char **args, int serialPort) {
     char *str;
 
     if (args[1] == NULL) {
-        printf("ERROR: missing name\n");
+        printf("\n\tERROR: missing name\n");
         return EXIT_FAILURE;
     } else if (args[2] != NULL) {
-        printf("ERROR: too many arguments\n");
+        printf("\n\tERROR: too many arguments\n");
         return EXIT_FAILURE;
     } else if (strlen(args[1]) > MAX_SIZE_DEVICE_NAME - 1) {
-        printf("Name too long, max 20 characters");
+        printf("\n\tName too long, max 20 characters");
         return EXIT_FAILURE;
     }
 
+    name = realloc(name, strlen(args[1]) + 1);
+    if (name == NULL) {
+        printf("\n\tError during reallocation memory\n");
+        return EXIT_FAILURE;
+    }
     strcpy(name, args[1]);
 
-    len = strlen(args[0]) + strlen(args[1]) + 1;
-    str = malloc((len + 1) * sizeof(char));
+    len = strlen(args[0]) + strlen(args[1]) + 2;
+    str = malloc(len * sizeof(char));
     if (str == NULL) {
-        printf("Error during allocation memory\n");
+        printf("\n\tError during allocation memory\n");
         return EXIT_FAILURE;
     }
     sprintf(str, "%s %s", args[0], args[1]);
-    write(serialPort, str, len);
+
+    TF_Msg m;
+    TF_ClearMsg(&m);
+    m.type = REPLY_MSG;
+    m.data = (uint8_t *)str;
+    m.len = len;
+    TF_Query(tf, &m, replyListener, 0);
+
     usleep(1000000);
 
     return EXIT_SUCCESS;
@@ -224,19 +261,18 @@ int set_channel_name(char **args, int serialPort) {
         return EXIT_FAILURE;
 
     if (strlen(args[3]) > MAX_SIZE_CHANNEL_NAME) {
-        printf("Channel name too long (max 20 characters)\n");
+        printf("\n\tChannel name too long (max 20 characters)\n");
         return EXIT_FAILURE;
     }
 
     if (strcmp(args[1], name) != 0) {
-        printf("Device name not found\n");
+        printf("\n\tDevice name not found\n");
         return EXIT_FAILURE;
     }
 
     ch = get_channel(args[2]);
-
     if (ch == -1) {
-        printf("Channel name not found\n");
+        printf("\n\tChannel name not found\n");
         return EXIT_FAILURE;
     }
 
@@ -246,7 +282,7 @@ int set_channel_name(char **args, int serialPort) {
     case 0:
         switch_B[bit] = realloc(switch_B[bit], strlen(args[3]) + 1);
         if (switch_B[bit] == NULL) {
-            printf("Error during allocation memory\n");
+            printf("\n\tError during reallocation memory\n");
             return EXIT_FAILURE;
         }
         strcpy(switch_B[bit], args[3]);
@@ -254,7 +290,7 @@ int set_channel_name(char **args, int serialPort) {
     case 1:
         switch_L[bit] = realloc(switch_L[bit], strlen(args[3]) + 1);
         if (switch_L[bit] == NULL) {
-            printf("Error during allocation memory\n");
+            printf("\n\tError during reallocation memory\n");
             return EXIT_FAILURE;
         }
         strcpy(switch_L[bit], args[3]);
@@ -262,7 +298,7 @@ int set_channel_name(char **args, int serialPort) {
     case 2:
         digital_in[bit] = realloc(digital_in[bit], strlen(args[3]) + 1);
         if (digital_in[bit] == NULL) {
-            printf("Error during allocation memory\n");
+            printf("\n\tError during reallocation memory\n");
             return EXIT_FAILURE;
         }
         strcpy(digital_in[bit], args[3]);
@@ -270,7 +306,7 @@ int set_channel_name(char **args, int serialPort) {
     case 3:
         analog_in[bit] = realloc(analog_in[bit], strlen(args[3]) + 1);
         if (analog_in[bit] == NULL) {
-            printf("Error during allocation memory\n");
+            printf("\n\tError during reallocation memory\n");
             return EXIT_FAILURE;
         }
         strcpy(analog_in[bit], args[3]);
@@ -280,13 +316,20 @@ int set_channel_name(char **args, int serialPort) {
     }
 
     len = strlen(args[0]) + strlen(args[3]) + 5;
-    str = malloc((len + 1) * sizeof(char));
+    str = malloc(len * sizeof(char));
     if (str == NULL) {
-        printf("Error during allocation memory\n");
+        printf("\n\tError during allocation memory\n");
         return EXIT_FAILURE;
     }
     sprintf(str, "%s %d %s", args[0], ch, args[3]);
-    write(serialPort, str, len);
+
+    TF_Msg m;
+    TF_ClearMsg(&m);
+    m.type = REPLY_MSG;
+    m.data = (uint8_t *)str;
+    m.len = len;
+    TF_Query(tf, &m, replyListener, 0);
+
     usleep(1000000);
 
     free(str);
@@ -306,30 +349,35 @@ int get_channel_value(char **args, int serialPort) {
 
     ch = get_channel(args[1]);
     if (ch == -1) {
-        printf("Channel name not found\n");
+        printf("\n\tChannel name not found\n");
         return EXIT_FAILURE;
     }
 
     memset(readBuffer, 0, sizeof(readBuffer));
 
-    len = strlen(args[0]) + 3;
-    str = malloc((len + 1) * sizeof(char));
+    len = strlen(args[0]) + 4;
+    str = malloc(len * sizeof(char));
     if (str == NULL) {
-        printf("Error during allocation memory\n");
+        printf("\n\tError during allocation memory\n");
         return EXIT_FAILURE;
     }
-    sprintf(str, "%s %d", args[0], ch);
-    write(serialPort, str, len);
+    sprintf(str, "%s:%d", args[0], ch);
+
+    TF_Msg m;
+    TF_ClearMsg(&m);
+    m.type = REQUEST_MSG;
+    m.data = (uint8_t *)str;
+    m.len = len;
+    TF_Query(tf, &m, replyListener, 0);
+
     usleep(1000000);
 
-    num_read_bytes = read(serialPort, readBuffer, READ_BUFFER_SIZE);
-    if (num_read_bytes < 0) {
-        printf("Error reading: %s\n", strerror(errno));
-        return EXIT_FAILURE;
-    }
+    receive_message(readBuffer, serialPort, tf);
 
-    readBuffer[num_read_bytes] = '\0';
-    printf("\n\tVALUE: %s\n", readBuffer);
+    if(dataMsg==NULL)
+        return EXIT_FAILURE;
+
+    printf("\n\tVALUE: %s\n", dataMsg);
 
     free(str);
     return EXIT_SUCCESS;
@@ -348,13 +396,13 @@ int set_channel_value(char **args, int serialPort) {
 
     ch = get_channel(args[1]);
     if (ch == -1) {
-        printf("Channel name not found\n");
+        printf("\n\tChannel name not found\n");
         return EXIT_FAILURE;
     }
 
     for (int i = 0; i < strlen(args[2]); i++) {
         if (isdigit(args[2][i]) == 0) {
-            printf("Invalid value");
+            printf("\n\tInvalid value\n");
             return EXIT_FAILURE;
         }
     }
@@ -362,18 +410,25 @@ int set_channel_value(char **args, int serialPort) {
     value = atoi(args[2]);
 
     if (value < 0 || value > 255) {
-        printf("Invalid value");
+        printf("\n\tInvalid value\n");
         return EXIT_FAILURE;
     }
 
-    len = strlen(args[0]) + strlen(args[2]) + 4;
-    str = malloc((len + 1) * sizeof(char));
+    len = strlen(args[0]) + strlen(args[2]) + 5;
+    str = malloc(len * sizeof(char));
     if (str == NULL) {
-        printf("Error during allocation memory\n");
+        printf("\n\tError during allocation memory\n");
         return EXIT_FAILURE;
     }
-    sprintf(str, "%s %d %s", args[0], ch, args[2]);
-    write(serialPort, str, len);
+    sprintf(str, "%s:%d:%s", args[0], ch, args[2]);
+
+    TF_Msg m;
+    TF_ClearMsg(&m);
+    m.type = REQUEST_MSG;
+    m.data = (uint8_t *)str;
+    m.len = len;
+    TF_Query(tf, &m, replyListener, 0);
+
     usleep(1000000);
 
     free(str);
@@ -387,19 +442,24 @@ int get_temperature(char **args, int serialPort) {
 
     memset(readBuffer, 0, sizeof(readBuffer));
 
-    write(serialPort, args[0], strlen(args[0]) + 1);
+    TF_Msg m;
+    TF_ClearMsg(&m);
+    m.type = REQUEST_MSG;
+    m.data = (uint8_t *)args[0];
+    m.len = (TF_LEN)(strlen(args[0]) + 1);
+    TF_Query(tf, &m, replyListener, 0);
+
     usleep(1000000);
 
-    num_read_bytes = read(serialPort, readBuffer, READ_BUFFER_SIZE);
-    if (num_read_bytes < 0) {
-        printf("Error reading: %s\n", strerror(errno));
-        return EXIT_FAILURE;
-    }
+    receive_message(readBuffer, serialPort, tf);
 
-    token = strtok(readBuffer, " \n");
+    if(dataMsg==NULL)
+        return EXIT_FAILURE;
+
+    token = strtok(dataMsg, " :\n");
     printf("\n\tTEMPERATURE: %s C\n", token);
 
-    token = strtok(NULL, " \n");
+    token = strtok(NULL, " :\n");
     printf("\tHUMIDITY: %s%%\n", token);
 
     return EXIT_SUCCESS;

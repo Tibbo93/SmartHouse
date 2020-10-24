@@ -72,7 +72,7 @@ int perform(char buffer[], int serialPort) {
         return EXIT_FAILURE;
     }
 
-    token = strtok(buffer, " \n");
+    token = strtok(buffer, " :\n");
     while (token != NULL) {
         params[idx] = malloc((strlen(token) + 1) * sizeof(char));
         if (params[idx] == NULL) {
@@ -80,7 +80,7 @@ int perform(char buffer[], int serialPort) {
             return EXIT_FAILURE;
         }
         strcpy(params[idx], token);
-        token = strtok(NULL, " \n");
+        token = strtok(NULL, " :\n");
         idx++;
     }
     params[idx] = NULL;
@@ -105,11 +105,13 @@ int perform(char buffer[], int serialPort) {
 
 int download_conf(int serialPort) {
 
-    if (get_avr_name_conf(serialPort))
+    if (get_avr_name_conf(serialPort)) {
         return EXIT_FAILURE;
+    }
 
-    if (get_avr_channels_conf(serialPort))
+    if (get_avr_channels_conf(serialPort)) {
         return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
