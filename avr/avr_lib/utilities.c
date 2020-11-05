@@ -1,12 +1,12 @@
 #include "utilities.h"
 #include "../../common/TinyFrame.h"
+#include "lcd.h"
 #include "requests.h"
 #include "uart.h"
 #include <avr/io.h>
 #include <stdlib.h>
 #include <string.h>
 #include <util/delay.h>
-#include "lcd.h"
 
 uint8_t (*funs[NUM_FUNS])(char **, char *) = {
     get_avr_name,
@@ -38,8 +38,7 @@ void TF_WriteImpl(TinyFrame *tf, const uint8_t *buff, uint32_t len) {
 }
 
 TF_Result replyListener(TinyFrame *tf, TF_Msg *msg) {
-    //lcd_clrscr();
-    //lcd_puts("REPLYLIST");
+
     if (perform_request((char *)msg->data)) {
         msg->type = ERROR_MSG;
         msg->data = (uint8_t *)0x15;
@@ -120,9 +119,6 @@ uint8_t get_request(char *buff) {
         if (c == 0xff)
             return 0;
 
-        //if(idx > 6)
-            //lcd_putc(c);
-
         buff[idx] = c;
 
         if (idx == 3)
@@ -132,7 +128,6 @@ uint8_t get_request(char *buff) {
         buff[idx] = 0;
 
         if (idx == data_len + MSG_SIZE_NO_DATA) {
-            //lcd_putc('\n');
             return idx;
         }
 
@@ -141,7 +136,7 @@ uint8_t get_request(char *buff) {
 }
 
 uint8_t perform_request(char *buffer) {
-  
+
     char *token;
     char *params[NUM_ARGS] = { 0 };
     int idx = 0;

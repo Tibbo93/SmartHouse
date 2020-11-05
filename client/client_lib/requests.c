@@ -65,7 +65,7 @@ char *default_analog_in[] = {
 
 TF_Result replyListener(TinyFrame *tf, TF_Msg *msg) {
 
-    if(msg->type == ERROR_MSG) {
+    if (msg->type == ERROR_MSG) {
         dataMsg = NULL;
         printf("\n\tERROR: something went wrong during request, try again\n");
         return TF_CLOSE;
@@ -118,12 +118,10 @@ int get_avr_name_conf(int serialPort) {
     TF_Query(tf, &m, replyListener, 0);
 
     usleep(1000000);
-
     receive_message(readBuffer, serialPort, tf);
-
     usleep(1000000);
 
-    if(dataMsg==NULL)
+    if (dataMsg == NULL)
         return EXIT_FAILURE;
 
     name = malloc((strlen(dataMsg) + 1) * sizeof(char));
@@ -151,10 +149,10 @@ int get_avr_channels_conf(int serialPort) {
     TF_Query(tf, &m, replyListener, 0);
 
     usleep(1000000);
-
     receive_message(readBuffer, serialPort, tf);
+    usleep(100000);
 
-    if(dataMsg==NULL)
+    if (dataMsg == NULL)
         return EXIT_FAILURE;
 
     token = strtok(dataMsg, " :\n");
@@ -244,7 +242,14 @@ int set_name(char **args, int serialPort) {
     m.len = len;
     TF_Query(tf, &m, replyListener, 0);
 
-    usleep(1000000);
+    usleep(100000);
+    receive_message(readBuffer, serialPort, tf);
+    usleep(100000);
+
+    free(str);
+
+    if (dataMsg == NULL)
+        return EXIT_FAILURE;
 
     return EXIT_SUCCESS;
 }
@@ -332,7 +337,15 @@ int set_channel_name(char **args, int serialPort) {
 
     usleep(1000000);
 
+    usleep(100000);
+    receive_message(readBuffer, serialPort, tf);
+    usleep(100000);
+
     free(str);
+
+    if (dataMsg == NULL)
+        return EXIT_FAILURE;
+
     return EXIT_SUCCESS;
 }
 
@@ -371,10 +384,10 @@ int get_channel_value(char **args, int serialPort) {
     TF_Query(tf, &m, replyListener, 0);
 
     usleep(1000000);
-
     receive_message(readBuffer, serialPort, tf);
+    usleep(100000);
 
-    if(dataMsg==NULL)
+    if (dataMsg == NULL)
         return EXIT_FAILURE;
 
     printf("\n\tVALUE: %s\n", dataMsg);
@@ -429,9 +442,15 @@ int set_channel_value(char **args, int serialPort) {
     m.len = len;
     TF_Query(tf, &m, replyListener, 0);
 
-    usleep(1000000);
+    usleep(100000);
+    receive_message(readBuffer, serialPort, tf);
+    usleep(100000);
 
     free(str);
+
+    if (dataMsg == NULL)
+        return EXIT_FAILURE;
+
     return EXIT_SUCCESS;
 }
 
@@ -450,10 +469,10 @@ int get_temperature(char **args, int serialPort) {
     TF_Query(tf, &m, replyListener, 0);
 
     usleep(1000000);
-
     receive_message(readBuffer, serialPort, tf);
+    usleep(100000);
 
-    if(dataMsg==NULL)
+    if (dataMsg == NULL)
         return EXIT_FAILURE;
 
     token = strtok(dataMsg, " :\n");

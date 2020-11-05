@@ -33,23 +33,15 @@ void dumpFrameInfo(TF_Msg *msg) {
 }
 
 void TF_WriteImpl(TinyFrame *tf, const uint8_t *buff, uint32_t len) {
-
-    printf("DENTRO WRITE\n");
-    /*while(*buff) {
-        printf("%c", *buff);
-        buff++;
-    }*/
     
     if (serialPort != -1) {
-        printf("write: %zu", write(serialPort, buff, len));
+        write(serialPort, buff, len);
     } else {
         printf("\nNo peer!\n");
     }
 }
 
 void receive_message(char *buff, int fd, TinyFrame *tf) {
-
-    printf("DENTRO RECEIVE\n");
 
     if (serialPort == 0)
         serialPort = fd;
@@ -59,7 +51,6 @@ void receive_message(char *buff, int fd, TinyFrame *tf) {
         printf("Error reading: %s\n", strerror(errno));
         return;
     }
-    printf("PRIMA ACCEPT bytes ricevuti: %d\n", recvBytes);
+
     TF_Accept(tf, buff, recvBytes);
-    printf("ACCEPT FINITA\n");
 }

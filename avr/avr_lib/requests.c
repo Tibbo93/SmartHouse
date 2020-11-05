@@ -132,7 +132,7 @@ uint8_t set_channel_value(char **args, char *payload) {
         else if (bit == 6)
             OCR1B = val;
         else {
-            if (val == 1)
+            if (val > 0)
                 PORTB |= (1 << bit);
             else
                 PORTB &= ~(1 << (bit));
@@ -147,6 +147,8 @@ uint8_t set_channel_value(char **args, char *payload) {
     default:
         break;
     }
+
+    sprintf(payload, "%d", 0x06);
 
     return EXIT_SUCCESS;
 }

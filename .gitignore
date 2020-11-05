@@ -4,11 +4,12 @@
 # or operating system, you probably want to add a global ignore instead:
 #   git config --global core.excludesfile '~/.gitignore_global'
 
-# Ignore .o file
+# Ignore files
 *.o
-
-# Ignore .elf file
 *.elf
+*.hex
 
-# Ignore vscode directory
+# Ignore directories
 .vscode/
+venv/
+__pycache__/

@@ -15,7 +15,7 @@ int main(void) {
 
     char RX_buffer[RX_BUFFER_SIZE] = { 0 };
 
-    //initialize uart library, pass baudrate and AVR cpu clock
+    //initialize uart library
     uart_init();
 
     //initialize display and channels
@@ -28,14 +28,17 @@ int main(void) {
     //upload configuration
     load_conf();
 
+    lcd_clrscr();
+
     while (1) {
 
         memset(RX_buffer, 0, strlen(RX_buffer) + 1);
 
         uint8_t recvBytes = get_request(RX_buffer);
 
-        if (recvBytes != 0)
+        if (recvBytes != 0) {
             handle_request(RX_buffer, recvBytes);
+        }
 
         detect_fire();
 
