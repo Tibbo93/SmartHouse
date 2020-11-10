@@ -2,24 +2,65 @@
 
 {% block title %}Flaskturorial{% endblock %}
 
-{% block navbar %}
-<div class="navbar navbar-inverse" role="navigation">
-    <div class="container">
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{url_for('static', filename='css/dashboard.css')}}">
+{% endblock %}
+
+
+{% block body %}
+<div id="throbber" style="display:none; min-height:120px;"></div>
+<div id="noty-holder"></div>
+<div id="wrapper">
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <!-- Brand and toggle get grouped for better mobile display -->
         <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
                 <span class="sr-only">Toggle navigation</span>
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="/">SMARTHOUSE</a>
+            <a class="navbar-brand" href="/index">
+                <img src="http://placehold.it/200x50&text=LOGO" alt="LOGO">
+            </a>
         </div>
-    </div>
-</div>
-{% endblock %}
+        <!-- Top Menu Items -->
+        <ul class="nav navbar-right top-nav">
+            <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Info <b class="fa fa-angle-down"></b></a>
+                <ul class="dropdown-menu">
+                    <li><a href="https://github.com/Tibbo93/SmartHouse.git"><i class="fa fa-fw fa-github"></i> Repo
+                            Github</a></li>
+                    <li><a href="#"><i class="fa fa-fw fa-image"></i> Prototipo</a></li>
+                    <li class="divider"></li>
+                    <li><a href="#"><i class="fa fa-fw fa-power-off"></i> Logout</a></li>
+                </ul>
+            </li>
+        </ul>
+        <!-- Sidebar Menu Items - These collapse to the responsive navigation menu on small screens -->
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav side-nav">
+                <li class="active">
+                    <a class="section" href="/index"><i class="fa fa-fw fa-home"></i> HOME</a>
+                </li>
+                <li>
+                    <a class="section" href="/settings"><i class="fa fa-fw fa fa-cog"></i> CONFIGURAZIONE</a>
+                </li>
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </nav>
 
-{% block content %}
-<div class="container">
-    {% block page_content %}{% endblock %}
-</div>
+    {% block content %}
+        {% block page_content %}{% endblock %}
+    {% endblock %}
+</div><!-- /#wrapper -->
+
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="{{url_for('static', filename='js/dashboard.js')}}"></script>
+{% endblock %}
+</body>
 {% endblock %}

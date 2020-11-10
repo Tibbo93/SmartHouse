@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{url_for('static', filename='css/settings.css')}}">
+{% endblock %}
+
+{% block title %}Flasktutorial{% endblock %}
+
+{% block page_content %}
+<div class="user-dashboard">
+    <h1>Configurazione</h1>
+    <div class="panel panel-info">
+        <div class="panel-heading">
+            <h3 class="panel-title">Dispositivo</h3>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-md-9 col-lg-9">
+                    <table class="table table-user-information">
+                        <tbody>
+                            <tr>
+                                <td>Tipo di dispositivo:</td>
+                                <td>Elegoo Mega 2560 R3 Board</td>
+                            </tr>
+                            <tr>
+                                <td>Chipset:</td>
+                                <td>ATmega2560</td>
+                            </tr>
+                            <tr>
+                                <td>Nome dispositivo:</td>
+                                <td>{{ deviceName|capitalize }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="panel-heading middle-heading">
+            <h3 class="panel-title">Canali</h3>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-md-9 col-lg-9">
+                    <table class="table table-user-information">
+                        <tbody>
+                            <tr>
+                                <td>Digitali B (OUTPUT):</td>
+                                {% for switch_row in switch_B | batch(4) %}
+                                {% with %}
+                                {% set group=(loop.index-1) %}
+                                <td>
+                                    {% for switch in switch_row %}
+                                    {{ (group*4)+loop.index }}) {{ switch[0]|capitalize }}<br><br>
+                                    {% endfor %}
+                                </td>
+                                {% endwith %}
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Digitali L (OUTPUT):</td>
+                                {% for switch_row in switch_L | batch(4) %}
+                                {% with %}
+                                {% set group=(loop.index-1) %}
+                                <td>
+                                    {% for switch in switch_row %}
+                                    {{ (group*4)+loop.index }}) {{ switch|capitalize }}<br><br>
+                                    {% endfor %}
+                                </td>
+                                {% endwith %}
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Digitali C (INPUT):</td>
+                                {% for digital_row in digital_in | batch(4) %}
+                                {% with %}
+                                {% set group=(loop.index-1) %}
+                                <td>
+                                    {% for digital in digital_row %}
+                                    {{ (group*4)+loop.index }}) {{ digital|capitalize }}<br><br>
+                                    {% endfor %}
+                                </td>
+                                {% endwith %}
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <td>Analogici (INPUT):</td>
+                                {% for analog_row in analog_in | batch(4) %}
+                                {% with %}
+                                {% set group=(loop.index-1) %}
+                                <td>
+                                    {% for analog in analog_row %}
+                                    {{ (group*4)+loop.index }}) {{ analog|capitalize }}<br><br>
+                                    {% endfor %}
+                                </td>
+                                {% endwith %}
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="panel-footer">
+            <div class="row">
+                <span class="pull-right">
+                    <a href="/edit-settings" data-original-title="Modifica configurazione" data-toggle="tooltip" type="button"
+                        class="btn btn-sm btn-warning"><i class="glyphicon glyphicon-edit"></i></a>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

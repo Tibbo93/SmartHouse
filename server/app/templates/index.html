@@ -3,30 +3,36 @@
 {% block styles %}
 {{ super() }}
 <link rel="stylesheet" href="{{url_for('static', filename='css/light_switch.css')}}">
+<link rel="stylesheet" href="{{url_for('static', filename='css/box.css')}}">
 {% endblock %}
 
 {% block title %}Flasktutorial{% endblock %}
 
 {% block page_content %}
-<ul class="switches">
-    {% for switch in switch_B %}
-    <div class="container">
-        <div class="row">
-            <div class="col-md-2">
-                <h4>{{ switch|upper }}</h4>
-                <div class="onoffswitch2">
-                    <input type="checkbox" name="onoffswitch2" class="onoffswitch2-checkbox" id="{{ switch }}">
-                    <label class="onoffswitch2-label" for="{{ switch }}">
-                        <span class="onoffswitch2-inner"></span>
-                        <span class="onoffswitch2-switch"></span>
-                    </label>
+<div class="user-dashboard">
+    <h1>Interruttori:</h1>
+    {% for switch_row in switch_B | batch(2) %}
+    <div class="row">
+        {% for switch in switch_row %}
+        <div class="col-md-6 col-sm-6 col-xs-12 gutter">
+            <div class="sales">
+                <h2>{{ switch[0]|upper }}</h2>
+                <div class="btn-group">
+                    <div class="onoffswitch2">
+                        <input type="checkbox" name="onoffswitch2" class="onoffswitch2-checkbox" id="{{ switch[0] }}">
+                        <label class="onoffswitch2-label" for="{{ switch[0] }}">
+                            <span class="onoffswitch2-inner"></span>
+                            <span class="onoffswitch2-switch"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
+        {% endfor %}
     </div>
     {% endfor %}
-</ul>
-{% endblock %}
+</div>
+{% endblock %} -->
 
 {% block scripts %}
 {{ super() }}

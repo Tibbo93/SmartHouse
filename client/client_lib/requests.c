@@ -237,7 +237,7 @@ int set_name(char **args, int serialPort) {
 
     TF_Msg m;
     TF_ClearMsg(&m);
-    m.type = REPLY_MSG;
+    m.type = REQUEST_MSG;
     m.data = (uint8_t *)str;
     m.len = len;
     TF_Query(tf, &m, replyListener, 0);
@@ -330,7 +330,7 @@ int set_channel_name(char **args, int serialPort) {
 
     TF_Msg m;
     TF_ClearMsg(&m);
-    m.type = REPLY_MSG;
+    m.type = REQUEST_MSG;
     m.data = (uint8_t *)str;
     m.len = len;
     TF_Query(tf, &m, replyListener, 0);

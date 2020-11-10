@@ -9,6 +9,13 @@ c_lib = CDLL(so_file_path)
 def doublePtr2_list(ptr, ch_list):
     for i in range(8):
         ch_list.append(ptr[i].decode("utf-8"))
+        
+def doublePtr2_doubleList(ptr, ch_list):
+    for i in range(8):
+        if 4 <= i <= 6:
+            ch_list.append([ptr[i].decode("utf-8"), True])
+        else:
+            ch_list.append([ptr[i].decode("utf-8"), False])
 
 class Conf():
     serial_port_path = "/dev/ttyACM0"
@@ -44,10 +51,25 @@ class Conf():
         c_lib.get_digital_in.restype = POINTER(c_char_p)
         c_lib.get_analog_in.restype = POINTER(c_char_p)
         
-        Conf.name = c_lib.get_name().decode("utf-8")
-        doublePtr2_list(c_lib.get_switch_B(), Conf.switch_B)
+        Conf.name = c_lib.get_name().decode("utf-8").replace('_', ' ')
+        doublePtr2_doubleList(c_lib.get_switch_B(), Conf.switch_B)
         doublePtr2_list(c_lib.get_switch_L(), Conf.switch_L)
         doublePtr2_list(c_lib.get_digital_in(), Conf.digital_in)
         doublePtr2_list(c_lib.get_analog_in(), Conf.analog_in)
         
         app.logger.info("Configurazione terminata")
+        
+    def set_channel_name(old_name, new_name):
+        for i in range(8):
+            if Conf.switch_B[i][0] == old_name:
+                Conf.switch_B[i][0] = new_name
+                return
+            if Conf.switch_L[i] == old_name:
+                Conf.switch_L[i] = new_name
+                return
+            if Conf.digital_in[i] == old_name:
+                Conf.digital_in[i] = new_name
+                return
+            if Conf.analog_in[i] == old_name:
+                Conf.analog_in[i] = new_name
+                return

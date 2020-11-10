@@ -54,7 +54,7 @@
 .onoffswitch2-inner:after {
     content: "OFF";
     padding-right: 10px;
-    background-color: #d62222;
+    background-color: #f65252;
     color: black;
     text-align: right;
 }

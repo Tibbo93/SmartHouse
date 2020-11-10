@@ -8,6 +8,7 @@ def create_app():
 
     app = Flask(__name__)
     
+    app.config['SECRET_KEY'] = 'smartHouseAVR20'
     bootstrap.init_app(app)
 
     from app.errors import bp as errors_bp
