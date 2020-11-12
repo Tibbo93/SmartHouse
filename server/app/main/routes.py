@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for
+from flask import render_template, request, redirect, url_for, jsonify
 from app.main import bp
 from app.utilities import c_lib, Conf
 import app.forms as forms
@@ -7,7 +7,8 @@ import app.forms as forms
 @bp.route('/index', methods=['GET'])
 def index():
     return render_template('index.html', switch_B=Conf.switch_B, switch_L=Conf.switch_L,
-                        digital_in=Conf.digital_in, analog_in=Conf.analog_in)
+                        digital_in=Conf.digital_in, analog_in=Conf.analog_in, temperature="ND",
+                        humidity="ND")
 
 @bp.route('/set_channel_value/<channel>', methods=['PUT'])
 def set_channel_value(channel):
@@ -53,3 +54,16 @@ def set_channel_name(cmd, device, channel):
         c_lib.perform(bytes(str, encoding="utf-8"), Conf.serial_port)
         channelNameForm.channelName.data = ''
     return redirect(url_for('main.edit_settings'))
+    
+@bp.route('/get_temperature', methods=['GET'])
+def get_temperature():
+    str = "get_temperature"
+    c_lib.perform(bytes(str, encoding="utf-8"), Conf.serial_port)
+    temperature = c_lib.get_temp()
+    humidity = c_lib.get_humidity()
+    return jsonify({ 
+        'temperature': temperature,
+        'humidity': humidity
+        })
+    
+    

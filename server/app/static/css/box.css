@@ -108,3 +108,17 @@
         padding: 0;
     }
 }
+
+.row-btn-temp {
+    display: flex;
+    justify-content: center;
+}
+
+.btn-temp {
+    margin: 13px;
+    font-size: 13px;
+}
+
+.col-tmp {
+    padding-left: 0px;;
+}
