@@ -3,24 +3,41 @@ var base_url = "http://localhost:5000/";
 
 window.onload = function () {
     var checkboxItems = document.querySelectorAll("input[class=onoffswitch2-checkbox]");
-
     for (let i = 0; i < checkboxItems.length; i++) {
         checkboxItems[i].addEventListener("change", function () {
             if (this.checked) {
-                turnOnOff(this.id, 255);
+                var brightness = document.getElementById("brightness_" + this.id);
+                if (brightness != null) {
+                    var value = Math.round((255 / 100) * brightness.value);
+                    turnOnOff(this.id, value);
+                } else {
+                    turnOnOff(this.id, 255);
+                }
             } else {
                 turnOnOff(this.id, 0);
             }
         });
     }
 
-    setLocation();
+    //setLocation();
 
     var time = document.getElementById("time");
     setInterval(refreshTime, 1000);
 
     var tmp_button = document.getElementById("btn-tmp");
     tmp_button.addEventListener("click", get_temperature);
+
+    var brightnessItems = document.querySelectorAll("select[name=brightness]");
+    for (let i = 0; i < brightnessItems.length; i++) {
+        brightnessItems[i].addEventListener("change", function () {
+            var channel = brightnessItems[i].id.substring(11);
+            var value = Math.round((255 / 100) * brightnessItems[i].value);
+            var ch_switch = document.getElementById(channel);
+            if (ch_switch.checked) {
+                turnOnOff(channel, value);
+            }
+        });
+    }
 };
 
 function turnOnOff(id, value) {
@@ -63,8 +80,8 @@ function setLocation() {
 }
 
 function showPosition(position) {
-    lat = position.coords.latitude;
-    long = position.coords.longitude;
+    var lat = position.coords.latitude;
+    var long = position.coords.longitude;
     xhr.open("GET", "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + lat + "," + long + "&key=AIzaSyAU***********", true);
     xhr.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
@@ -78,6 +95,6 @@ function showPosition(position) {
 
 function refreshTime() {
     var dateString = new Date().toLocaleString("it-IT", { timeZone: "Europe/Rome" });
-    formattedString = dateString.replace(", ", " - ");
+    var formattedString = dateString.replace(", ", " - ");
     time.innerHTML = formattedString;
 }

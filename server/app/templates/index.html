@@ -6,12 +6,14 @@
 <link rel="stylesheet" href="{{url_for('static', filename='css/box.css')}}">
 {% endblock %}
 
-{% block title %}Flasktutorial{% endblock %}
+{% block title %}Smart House - Home{% endblock %}
 
 {% block page_content %}
 <div class="user-dashboard">
     <h1>Interruttori:</h1>
     {% for switch_row in switch_B | batch(2) %}
+    {% with %}
+    {% set group=(loop.index-1) %}
     <div class="row">
         {% for switch in switch_row %}
         <div class="col-md-6 col-sm-6 col-xs-12 gutter">
@@ -25,11 +27,32 @@
                             <span class="onoffswitch2-switch"></span>
                         </label>
                     </div>
+                    {% set index = (group*2)+loop.index %}
+                    {% if index == 5 or index == 6 or index == 7 %}
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <label class="input-group-text" for="inputGroupSelect01">Luminosità</label>
+                        </div>
+                        <select name="brightness" class="custom-select" id="brightness_{{ switch[0] }}">
+                            <option value="100" selected>Predefinita</option>
+                            <option value="10">10%</option>
+                            <option value="20">20%</option>
+                            <option value="30">30%</option>
+                            <option value="40">40%</option>
+                            <option value="50">50%</option>
+                            <option value="60">60%</option>
+                            <option value="70">70%</option>
+                            <option value="80">80%</option>
+                            <option value="90">90%</option>
+                        </select>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
+    {% endwith %}
     {% endfor %}
     <h1>Sensori:</h1>
     <div class="col-md-6 col-tmp">
