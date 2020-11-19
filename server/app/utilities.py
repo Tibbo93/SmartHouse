@@ -6,16 +6,24 @@ from pathlib import Path
 so_file_path = Path("c_lib.so").absolute()
 c_lib = CDLL(so_file_path)
 
-def doublePtr2_list(ptr, ch_list):
+def intPtr2_list(ptr, sens_list):
+    for i in range(8):
+        sens_list.append(ptr[i])
+
+def doubleCharPtr2_list(ptr, ch_list):
     for i in range(8):
         ch_list.append(ptr[i].decode("utf-8"))
-        
-def doublePtr2_doubleList(ptr, ch_list):
+
+def doubleCharPtr2_doubleList(ptr, ch_list):
     for i in range(8):
         if 4 <= i <= 6:
             ch_list.append([ptr[i].decode("utf-8"), True])
         else:
             ch_list.append([ptr[i].decode("utf-8"), False])
+
+
+so_file_path = Path("c_lib.so").absolute()
+c_lib = CDLL(so_file_path)
 
 class Conf():
     serial_port_path = "/dev/ttyACM0"
@@ -25,6 +33,7 @@ class Conf():
     switch_L = []
     digital_in = []
     analog_in = []
+    sensors_enabled = []
 
     def conf_init(app):
         app.logger.info("Inizio configurazione")
@@ -50,12 +59,14 @@ class Conf():
         c_lib.get_switch_L.restype = POINTER(c_char_p)
         c_lib.get_digital_in.restype = POINTER(c_char_p)
         c_lib.get_analog_in.restype = POINTER(c_char_p)
+        c_lib.get_sensors_enabled.restype = POINTER(c_int)
         
         Conf.name = c_lib.get_name().decode("utf-8").replace('_', ' ')
-        doublePtr2_doubleList(c_lib.get_switch_B(), Conf.switch_B)
-        doublePtr2_list(c_lib.get_switch_L(), Conf.switch_L)
-        doublePtr2_list(c_lib.get_digital_in(), Conf.digital_in)
-        doublePtr2_list(c_lib.get_analog_in(), Conf.analog_in)
+        doubleCharPtr2_doubleList(c_lib.get_switch_B(), Conf.switch_B)
+        doubleCharPtr2_list(c_lib.get_switch_L(), Conf.switch_L)
+        doubleCharPtr2_list(c_lib.get_digital_in(), Conf.digital_in)
+        doubleCharPtr2_list(c_lib.get_analog_in(), Conf.analog_in)
+        intPtr2_list(c_lib.get_sensors_enabled(), Conf.sensors_enabled)
         
         app.logger.info("Configurazione terminata")
         

@@ -45,7 +45,7 @@ char *default_digital_in[] = {
     "temperature",           //pin 37
     "motion",                //pin 36
     "fire",                  //pin 35
-    "rain",                  //pin 34
+    "digital_in_3",                  //pin 34
     "digital_in_4",          //pin 33
     "digital_in_5",          //pin 32
     "digital_in_6",          //pin 31

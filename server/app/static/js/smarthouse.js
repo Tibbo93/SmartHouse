@@ -2,9 +2,9 @@ var xhr = new XMLHttpRequest();
 var base_url = "http://localhost:5000/";
 
 window.onload = function () {
-    var checkboxItems = document.querySelectorAll("input[class=onoffswitch2-checkbox]");
-    for (let i = 0; i < checkboxItems.length; i++) {
-        checkboxItems[i].addEventListener("change", function () {
+    var switchItems = document.querySelectorAll("input[name=switch]");
+    for (let i = 0; i < switchItems.length; i++) {
+        switchItems[i].addEventListener("change", function () {
             if (this.checked) {
                 var brightness = document.getElementById("brightness_" + this.id);
                 if (brightness != null) {
@@ -19,7 +19,19 @@ window.onload = function () {
         });
     }
 
-    //setLocation();
+    var sensItems = document.querySelectorAll("input[name=sens]");
+    for (let i = 0; i < sensItems.length; i++) {
+        sensItems[i].addEventListener("change", function () {
+            if (this.checked) {
+                turnOnOff(this.id, 1);
+            } else {
+                turnOnOff(this.id, 0);
+            }
+        });
+    }
+
+
+    setLocation();
 
     var time = document.getElementById("time");
     setInterval(refreshTime, 1000);
@@ -82,7 +94,7 @@ function setLocation() {
 function showPosition(position) {
     var lat = position.coords.latitude;
     var long = position.coords.longitude;
-    xhr.open("GET", "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + lat + "," + long + "&key=AIzaSyAU***********", true);
+    xhr.open("GET", "https://maps.googleapis.com/maps/api/geocode/json?latlng=" + lat + "," + long + "&key=AIzaSyAUKVWhf**************", true);
     xhr.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
             var address = JSON.parse(this.responseText);

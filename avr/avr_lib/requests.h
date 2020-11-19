@@ -19,4 +19,6 @@ uint8_t set_channel_value(char **args, char *payload);
 
 uint8_t get_temperature(char **args, char *payload);
 
+uint8_t is_enable(uint8_t ch);
+
 #endif

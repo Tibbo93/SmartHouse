@@ -40,9 +40,11 @@ int main(void) {
             handle_request(RX_buffer, recvBytes);
         }
 
-        detect_fire();
+        if(is_enable(2))
+            detect_fire();
 
-        detect_motion();
+        if(is_enable(1))
+            detect_motion();
 
         _delay_ms(50);
     }

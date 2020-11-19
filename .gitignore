@@ -8,6 +8,7 @@
 *.o
 *.elf
 *.hex
+.pyc
 
 # Ignore directories
 .vscode/

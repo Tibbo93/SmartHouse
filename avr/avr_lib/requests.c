@@ -15,6 +15,7 @@ Channel EEMEM channels_ee[NUM_CHANNELS];
 char name_P[MAX_SIZE_DEVICE_NAME] = { 0 };
 uint8_t name_set_P = 0;
 Channel channels_P[NUM_CHANNELS] = { 0 };
+uint8_t enabled_sens[8] = { 1, 0, 0, 0, 0, 0, 0, 0 };
 
 void load_conf(void) {
 
@@ -100,7 +101,7 @@ uint8_t get_channel_value(char **args, char *payload) {
         val = ((PORTL & (1 << bit)) != 0);
         break;
     case DIGITAL_IN:
-        val = ((PORTC & (1 << bit)) != 0);
+        val = enabled_sens[bit];
         break;
     case ANALOG_IN:
         val = adc_read(ch);
@@ -144,6 +145,11 @@ uint8_t set_channel_value(char **args, char *payload) {
         else
             PORTL &= ~(1 << (bit));
         break;
+    case DIGITAL_IN:
+        if (val > 0)
+            enabled_sens[bit] = 1;
+        else
+            enabled_sens[bit] = 0;
     default:
         break;
     }
@@ -183,4 +189,8 @@ uint8_t get_temperature(char **args, char *payload) {
 
     dht_reset();
     return EXIT_FAILURE;
+}
+
+uint8_t is_enable(uint8_t ch) {
+    return enabled_sens[ch];
 }

@@ -8,7 +8,7 @@ import app.forms as forms
 def index():
     return render_template('index.html', switch_B=Conf.switch_B, switch_L=Conf.switch_L,
                         digital_in=Conf.digital_in, analog_in=Conf.analog_in, temperature="ND",
-                        humidity="ND")
+                        humidity="ND", sens_enabled=Conf.sensors_enabled)
 
 @bp.route('/set_channel_value/<channel>', methods=['PUT'])
 def set_channel_value(channel):
